@@ -12,12 +12,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.hertssu.meetings.model.Meeting;
-import com.hertssu.meetings.model.User;
 import com.hertssu.meetings.repository.MeetingRepository;
-import com.hertssu.meetings.repository.UserRepository;
+import com.hertssu.model.Meeting;
+import com.hertssu.model.User;
 
 import jakarta.persistence.EntityNotFoundException;
+import com.hertssu.user.UserRepository;
 
 /**
  *
@@ -33,7 +33,7 @@ public class MeetingService {
     }
 
     public Meeting createMeeting(Meeting meeting){
-        Integer creatorId = meeting.getCreator().getId();
+        Long creatorId = meeting.getCreator().getId();
 
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + creatorId));

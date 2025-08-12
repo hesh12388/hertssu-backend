@@ -11,7 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.hertssu.meetings.model.Meeting;
+import com.hertssu.model.Meeting;
 
 public interface MeetingRepository extends JpaRepository<Meeting, Integer> {
     Page<Meeting> findByDateAndCreatorId(LocalDate date, Integer creatorId, Pageable pageable);

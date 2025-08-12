@@ -12,7 +12,7 @@ package com.hertssu.meetings.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.hertssu.meetings.model.UserMeeting;
+import com.hertssu.model.UserMeeting;
 
 public interface UserMeetingRepository extends JpaRepository<UserMeeting, Long> {
 }

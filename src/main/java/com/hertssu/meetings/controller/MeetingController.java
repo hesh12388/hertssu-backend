@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hertssu.meetings.model.Meeting;
 import com.hertssu.meetings.service.MeetingService;
+import com.hertssu.model.Meeting;
 
 import lombok.RequiredArgsConstructor;
 /**
