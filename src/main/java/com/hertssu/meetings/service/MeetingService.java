@@ -1,11 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 package com.hertssu.meetings.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -15,88 +11,96 @@ import org.springframework.stereotype.Service;
 import com.hertssu.meetings.repository.MeetingRepository;
 import com.hertssu.model.Meeting;
 import com.hertssu.model.User;
-
-import jakarta.persistence.EntityNotFoundException;
 import com.hertssu.user.UserRepository;
+import com.hertssu.utils.TeamsMeetingService;
 
-/**
- *
- * @author user
- */
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class MeetingService {
+
     private final MeetingRepository meetingRepository;
+    private final TeamsMeetingService teamsMeetingService;
     private final UserRepository userRepository;
-    public MeetingService(MeetingRepository meetingRepository, UserRepository userRepository) {
-        this.meetingRepository = meetingRepository;
-        this.userRepository = userRepository;
-    }
 
-    public Meeting createMeeting(Meeting meeting){
-        Long creatorId = meeting.getCreator().getId();
+    public Meeting createMeeting(Meeting meeting, User creator) {
+        meeting.setCreatedBy(creator);
+        meeting.setMeetingStatus("SCHEDULED");
+        meeting.setCreatedAt(LocalDateTime.now());
 
-        User creator = userRepository.findById(creatorId)
-            .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + creatorId));
-        
-        meeting.setCreator(creator);
+        String startIso = meeting.getDate().atTime(meeting.getStartTime()).toString();
+        String endIso = meeting.getDate().atTime(meeting.getEndTime()).toString();
+
+        String[] participantEmails = meeting.getParticipants()
+                                            .stream()
+                                            .map(User::getEmail)
+                                            .toArray(String[]::new);
+
+        var response = teamsMeetingService.createMeeting(
+            meeting.getTitle(),
+            startIso,
+            endIso,
+            participantEmails,
+            creator
+        );
+
+        if (response != null) {
+            meeting.setTeamsEventId(response.getId());
+            meeting.setJoinUrl(response.getOnlineMeeting() != null 
+                ? response.getOnlineMeeting().getJoinUrl() 
+                : null);
+        }
+
         return meetingRepository.save(meeting);
     }
 
-    public List<Meeting> getAllMeetings(){
+    public List<Meeting> getAllMeetings() {
         return meetingRepository.findAll();
     }
 
-    public Meeting getMeetingById(Integer id){
-        return meetingRepository.findById(id).orElse(null);
+    public Meeting getMeetingById(Long id) {
+        return meetingRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Meeting not found with id " + id));
     }
 
-    public void deleteMeeting(Integer id){
+    public void deleteMeeting(Long id) {
         meetingRepository.deleteById(id);
     }
 
-    public Meeting updateMeeting(Integer id, Meeting updatedData){
-        Meeting meeting = meetingRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Meeting not found"));        
-        
-        meeting.setTitle(updatedData.getTitle());
-        meeting.setDate(updatedData.getDate());
-        meeting.setStartTime(updatedData.getStartTime());
-        meeting.setEndTime(updatedData.getEndTime());
-        meeting.setNotes(updatedData.getNotes());
-        meeting.setType(updatedData.getType());
-        return meetingRepository.save(meeting);
+    public Meeting updateMeeting(Long id, Meeting updatedMeeting) {
+        Meeting existing = getMeetingById(id);
+        updatedMeeting.setMeetingId(existing.getMeetingId());
+        return meetingRepository.save(updatedMeeting);
     }
 
-    public Meeting addFile(Integer meetingId, String url){
-        Meeting meeting = getMeetingById(meetingId);
-
-        meeting.getFiles().add(url);
-        return meetingRepository.save(meeting);
+    public void addFile(Long id, String filePath) {
+        Meeting meeting = getMeetingById(id);
+        meeting.getFiles().add(filePath);
+        meetingRepository.save(meeting);
     }
 
-    public Meeting deleteFile(Integer meetingId, String url){
-        Meeting meeting = getMeetingById(meetingId);
-        if (meeting.getFiles().remove(url)) {
-            return meetingRepository.save(meeting);
-        } else {
-            throw new EntityNotFoundException("File not found in meeting");
-        }
+    public void deleteFile(Long id, String filePath) {
+        Meeting meeting = getMeetingById(id);
+        meeting.getFiles().remove(filePath);
+        meetingRepository.save(meeting);
+    }
+    public Page<Meeting> getTodayMeetingsForUser(Long userId, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        User user = userRepository.getReferenceById(userId);
+        return meetingRepository.findByDateAndCreatedBy(today, user, pageable);
     }
 
-    public Page<Meeting> getTodayMeetingsForUser(Integer userId, Pageable pageable){
-        return meetingRepository.findByDateAndCreatorId(LocalDate.now(), userId, pageable);
+    public Page<Meeting> getUpcomingMeetings(Long userId, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        User user = userRepository.getReferenceById(userId);
+        return meetingRepository.findByDateAfterAndCreatedBy(today, user, pageable);
     }
 
-    public Page<Meeting> getUpcomingMeetings(Integer userId, Pageable pageable){
-        return meetingRepository.findByDateAfterAndCreatorId(LocalDate.now(), userId, pageable);
+    public Page<Meeting> getMeetingsInRange(Long userId, String from, String to, int size, Pageable pageable) {
+        LocalDate startDate = LocalDate.parse(from);
+        LocalDate endDate = LocalDate.parse(to);
+        User user = userRepository.getReferenceById(userId);
+        return meetingRepository.findByDateBetweenAndCreatedBy(startDate, endDate, user, pageable);
     }
-
-    public Page<Meeting> getMeetingsByCreator(Integer userId, Pageable pageable){
-        return meetingRepository.findByCreator_Id(userId, pageable);
-    }
-
-    public Page<Meeting> searchMeetings(String title, Pageable pageable){
-        return meetingRepository.findByTitleContainingIgnoreCase(title, pageable);
-    }
-
 }
