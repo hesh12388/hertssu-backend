@@ -28,6 +28,7 @@ public class Interview {
     private String position;
 
     private String committee;
+    
     private String subCommittee;
 
     private LocalDateTime startTime;

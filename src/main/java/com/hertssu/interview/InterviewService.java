@@ -48,8 +48,10 @@ public class InterviewService {
             .toOffsetDateTime()
             .toString();
 
+        System.out.println("Scheduling meeting with subject: " + subject);
         MeetingResponse meeting  = teams.createMeeting(subject, startTimeStr, endTimeStr, attendees, interviewerRef);
         
+        System.out.println("Meeting created with ID: " + meeting.getId() + " and Join URL: " + meeting.getJoinUrl());
         // Persist interview with Teams fields
         Interview interview = Interview.builder()
             .name(req.getName())
@@ -89,11 +91,13 @@ public class InterviewService {
                         .accepted(interview.getAccepted())
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
+                        .interviewerEmail(interview.getInterviewer().getEmail())
                         .teamsMeetingId(interview.getTeamsMeetingId())
                         .teamsJoinUrl(interview.getTeamsJoinUrl())
                         .build();
         } 
         catch (RuntimeException ex) {
+            System.out.println("Failed to save interview to database: " + ex.getMessage());
             // cancel meeting since DB failed
             try { 
                 teams.cancelMeeting(meeting.getId(), interviewerRef); 
@@ -106,7 +110,7 @@ public class InterviewService {
     }
 
     @Transactional
-    public void logInterview(UUID id, InterviewLogRequest request) {
+    public InterviewResponse logInterview(UUID id, InterviewLogRequest request) {
         Interview interview = interviewRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException("Interview not found"));
 
@@ -120,6 +124,31 @@ public class InterviewService {
         interview.setStatus("LOGGED");
 
         interviewRepository.save(interview);
+
+        return InterviewResponse.builder()
+                        .id(interview.getId())
+                        .name(interview.getName())
+                        .gafEmail(interview.getGafEmail())
+                        .phoneNumber(interview.getPhoneNumber())
+                        .gafId(interview.getGafId())
+                        .position(interview.getPosition())
+                        .committee(interview.getCommittee())
+                        .subCommittee(interview.getSubCommittee())
+                        .startTime(interview.getStartTime())
+                        .endTime(interview.getEndTime())
+                        .status(interview.getStatus())
+                        .performance(interview.getPerformance())
+                        .experience(interview.getExperience())
+                        .communication(interview.getCommunication())
+                        .teamwork(interview.getTeamwork())
+                        .confidence(interview.getConfidence())
+                        .accepted(interview.getAccepted())
+                        .notes(interview.getNotes())
+                        .interviewerName(interview.getInterviewer().getFirstName())
+                        .interviewerEmail(interview.getInterviewer().getEmail())
+                        .teamsMeetingId(interview.getTeamsMeetingId())
+                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .build();
     }
 
     
@@ -156,6 +185,7 @@ public class InterviewService {
                         .accepted(interview.getAccepted())
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
+                        .interviewerEmail(interview.getInterviewer().getEmail())
                         .teamsMeetingId(interview.getTeamsMeetingId())
                         .teamsJoinUrl(interview.getTeamsJoinUrl())
                         .build())
@@ -175,7 +205,7 @@ public class InterviewService {
     }
 
     @Transactional
-    public void updateInterview(UUID id, InterviewUpdateRequest req, AuthUserPrincipal me) {
+    public InterviewResponse updateInterview(UUID id, InterviewUpdateRequest req, AuthUserPrincipal me) {
         Interview interview = interviewRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Interview not found"));
 
@@ -195,13 +225,13 @@ public class InterviewService {
         String startIso = req.getStartTime().atZone(egypt).toOffsetDateTime().toString();
         String endIso   = req.getEndTime().atZone(egypt).toOffsetDateTime().toString();
 
-        String[] attendees = { req.getEmail(), me.getEmail() };
+        String[] attendees = { req.getGafEmail(), me.getEmail() };
         User user = userRepository.getReferenceById(me.getId());
         teams.updateMeeting(meetingId, subject, startIso, endIso, attendees, user);
 
         try{
             interview.setName(req.getName());
-            interview.setGafEmail(req.getEmail());
+            interview.setGafEmail(req.getGafEmail());
             interview.setPhoneNumber(req.getPhoneNumber());
             interview.setGafId(req.getGafId());
             interview.setPosition(req.getPosition());
@@ -211,6 +241,31 @@ public class InterviewService {
             interview.setEndTime(req.getEndTime());
 
             interviewRepository.save(interview);
+
+            return InterviewResponse.builder()
+                        .id(interview.getId())
+                        .name(interview.getName())
+                        .gafEmail(interview.getGafEmail())
+                        .phoneNumber(interview.getPhoneNumber())
+                        .gafId(interview.getGafId())
+                        .position(interview.getPosition())
+                        .committee(interview.getCommittee())
+                        .subCommittee(interview.getSubCommittee())
+                        .startTime(interview.getStartTime())
+                        .endTime(interview.getEndTime())
+                        .status(interview.getStatus())
+                        .performance(interview.getPerformance())
+                        .experience(interview.getExperience())
+                        .communication(interview.getCommunication())
+                        .teamwork(interview.getTeamwork())
+                        .confidence(interview.getConfidence())
+                        .accepted(interview.getAccepted())
+                        .notes(interview.getNotes())
+                        .interviewerName(interview.getInterviewer().getFirstName())
+                        .interviewerEmail(interview.getInterviewer().getEmail())
+                        .teamsMeetingId(interview.getTeamsMeetingId())
+                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .build();
         }
         catch(Exception ex){    
              try { 

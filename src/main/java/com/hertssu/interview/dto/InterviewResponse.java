@@ -31,6 +31,7 @@ public class InterviewResponse {
 
     // Meta
     private String interviewerName;
+    private String interviewerEmail;
 
     // Teams meeting fields
     private String teamsMeetingId;

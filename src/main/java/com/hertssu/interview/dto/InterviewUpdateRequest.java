@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class InterviewUpdateRequest {
     private String name;
-    private String email;
+    private String gafEmail;
     private String phoneNumber;
     private String gafId;
     private String position;

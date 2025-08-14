@@ -29,13 +29,13 @@ public class InterviewController {
 
     @PutMapping("/{id}/log")
     @PreAuthorize("hasAuthority('COMMITTEE_HR')")
-    public ResponseEntity<Void> logInterview(
+    public ResponseEntity<InterviewResponse> logInterview(
             @PathVariable UUID id,
             @RequestBody InterviewLogRequest request
     ) {
         
-        interviewService.logInterview(id, request);
-        return ResponseEntity.ok().build();
+        InterviewResponse logged = interviewService.logInterview(id, request);
+        return ResponseEntity.ok(logged);
       
         
     }
@@ -56,12 +56,12 @@ public class InterviewController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('COMMITTEE_HR')")
-    public ResponseEntity<Void> updateInterview(
+    public ResponseEntity<InterviewResponse> updateInterview(
             @PathVariable UUID id,
             @RequestBody InterviewUpdateRequest request,
             @AuthenticationPrincipal AuthUserPrincipal currentUser
     ) {
-        interviewService.updateInterview(id, request, currentUser);
-        return ResponseEntity.ok().build();
+        InterviewResponse updated = interviewService.updateInterview(id, request, currentUser);
+        return ResponseEntity.ok(updated);
     }
     }

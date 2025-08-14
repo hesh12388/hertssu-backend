@@ -17,7 +17,6 @@ public class GlobalExceptionHandler {
                 "message", "Microsoft access expired. Please log in again."
             ));
         }
-        
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(Map.of("error", "INTERNAL_ERROR", "message", "An error occurred"));
     }
