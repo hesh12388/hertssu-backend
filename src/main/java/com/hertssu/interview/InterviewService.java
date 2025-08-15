@@ -13,7 +13,7 @@ import com.hertssu.model.Interview;
 import com.hertssu.model.User;
 import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.user.UserRepository;
-import com.hertssu.utils.TeamsMeetingService;
+import com.hertssu.utils.ZoomMeetingService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class InterviewService {
     private final InterviewRepository interviewRepository;
     private final UserRepository userRepository;
     private final HierarchyService hierarchyService;
-    private final TeamsMeetingService teams;
+    private final ZoomMeetingService teams;
 
 
     @Transactional
@@ -48,10 +48,9 @@ public class InterviewService {
             .toOffsetDateTime()
             .toString();
 
-        System.out.println("Scheduling meeting with subject: " + subject);
+    
         MeetingResponse meeting  = teams.createMeeting(subject, startTimeStr, endTimeStr, attendees, interviewerRef);
         
-        System.out.println("Meeting created with ID: " + meeting.getId() + " and Join URL: " + meeting.getJoinUrl());
         // Persist interview with Teams fields
         Interview interview = Interview.builder()
             .name(req.getName())
@@ -65,8 +64,9 @@ public class InterviewService {
             .endTime(req.getEndTime())
             .status("SCHEDULED")
             .interviewer(interviewerRef)
-            .teamsMeetingId(meeting.getId())
-            .teamsJoinUrl(meeting.getJoinUrl())
+            .meetingId(meeting.getId())
+            .joinUrl(meeting.getJoinUrl())
+            .meetingPassword(meeting.getPassword())
             .build();
 
         try {
@@ -92,8 +92,9 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
-                        .teamsMeetingId(interview.getTeamsMeetingId())
-                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .meetingId(interview.getMeetingId())
+                        .joinUrl(interview.getJoinUrl())
+                        .meetingPassword(interview.getMeetingPassword())
                         .build();
         } 
         catch (RuntimeException ex) {
@@ -146,8 +147,9 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
-                        .teamsMeetingId(interview.getTeamsMeetingId())
-                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .meetingId(interview.getMeetingId())
+                        .joinUrl(interview.getJoinUrl())
+                        .meetingPassword(interview.getMeetingPassword())
                         .build();
     }
 
@@ -186,8 +188,9 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
-                        .teamsMeetingId(interview.getTeamsMeetingId())
-                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .meetingId(interview.getMeetingId())
+                        .joinUrl(interview.getJoinUrl())
+                        .meetingPassword(interview.getMeetingPassword())
                         .build())
                 .toList();
     }
@@ -199,7 +202,7 @@ public class InterviewService {
             .orElseThrow(() -> new EntityNotFoundException("Interview not found"));
 
        
-        teams.cancelMeeting(interview.getTeamsMeetingId(), user);
+        teams.cancelMeeting(interview.getMeetingId(), user);
         interviewRepository.deleteById(id);
        
     }
@@ -217,15 +220,15 @@ public class InterviewService {
         String origSubject = "HR Interview for: " + interview.getPosition() + " role";
         String originalStart =  interview.getStartTime().atZone(egypt).toOffsetDateTime().toString();
         String originalEnd = interview.getEndTime().atZone(egypt).toOffsetDateTime().toString();
-        String[] originalAttendees = { interview.getGafEmail(), me.getEmail() };
+        String[] originalAttendees = { interview.getGafEmail(), me.getEmail()};
 
-        String meetingId = interview.getTeamsMeetingId();
+        String meetingId = interview.getMeetingId();
         String subject = "HR Interview for: " + req.getPosition() + " role";
 
         String startIso = req.getStartTime().atZone(egypt).toOffsetDateTime().toString();
         String endIso   = req.getEndTime().atZone(egypt).toOffsetDateTime().toString();
 
-        String[] attendees = { req.getGafEmail(), me.getEmail() };
+        String[] attendees = { req.getGafEmail(), me.getEmail()};
         User user = userRepository.getReferenceById(me.getId());
         teams.updateMeeting(meetingId, subject, startIso, endIso, attendees, user);
 
@@ -263,8 +266,9 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
-                        .teamsMeetingId(interview.getTeamsMeetingId())
-                        .teamsJoinUrl(interview.getTeamsJoinUrl())
+                        .meetingId(interview.getMeetingId())
+                        .joinUrl(interview.getJoinUrl())
+                        .meetingPassword(interview.getMeetingPassword())
                         .build();
         }
         catch(Exception ex){    

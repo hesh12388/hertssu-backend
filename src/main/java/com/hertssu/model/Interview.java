@@ -54,6 +54,7 @@ public class Interview {
 
     private LocalDateTime loggedAt;
 
-    private String teamsMeetingId;
-    private String teamsJoinUrl;
+    private String meetingId;
+    private String joinUrl;
+    private String meetingPassword;
 }
