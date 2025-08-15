@@ -30,7 +30,9 @@ public class TeamsMeetingService {
     var body = buildEventPayload(subject, startIso, endIso, attendeeEmails);
 
     MeetingResponse res = web.post()
-        .uri("/users/{org}/events", organizer)
+        .uri(uriBuilder -> uriBuilder
+            .path("/me/events")
+            .build())
         .header("Authorization", bearer)
         .bodyValue(body)
         .retrieve()
@@ -38,23 +40,23 @@ public class TeamsMeetingService {
         .block();
 
     return res;
-  }
+}
 
   // UPDATE (sends update emails)
   public void updateMeeting(String eventId, String subject, String startIso, String endIso, String[] attendeeEmails, User me) {
     String bearer = "Bearer " + tokenProvider.getAccessToken(me);
     var body = buildEventPayload(subject, startIso, endIso, attendeeEmails);
+   
     web.patch()
         .uri(uriBuilder -> uriBuilder
-            .path("/users/{org}/events/{id}")
-            .queryParam("sendUpdates", "all")
-            .build(organizer, eventId))
+            .path("/me/events/{id}")
+            .build(eventId))
         .header("Authorization", bearer)
         .bodyValue(body)
         .retrieve()
         .toBodilessEntity()
-        .block();
-    }
+        .block();   
+}
 
   // CANCEL (sends cancellation emails)
   public void cancelMeeting(String eventId, User me) {
@@ -62,7 +64,7 @@ public class TeamsMeetingService {
     var body = Map.of("comment", "Cancelled by system");
 
     web.post()
-        .uri("/users/{org}/events/{id}/cancel", organizer, eventId)
+        .uri("/me/events/{id}/cancel", eventId)
         .header("Authorization", bearer)
         .bodyValue(body)
         .retrieve()
@@ -76,6 +78,7 @@ public class TeamsMeetingService {
         "subject", subject,
         "start", Map.of("dateTime", startIso, "timeZone", "UTC"),
         "end",   Map.of("dateTime", endIso,   "timeZone", "UTC"),
+        "allowNewTimeProposals", true,
         "isOnlineMeeting", true,
         "onlineMeetingProvider", "teamsForBusiness",
         "attendees", List.of(emails).stream().map(e ->

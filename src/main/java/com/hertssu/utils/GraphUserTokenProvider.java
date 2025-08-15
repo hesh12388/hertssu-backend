@@ -25,6 +25,7 @@ public class GraphUserTokenProvider {
     }
     
     public synchronized String getAccessToken(User user) {
+       
         if (user.getMicrosoftAccessToken() != null && 
             user.getMicrosoftTokenExpiresAt() != null &&
             Instant.now().isBefore(user.getMicrosoftTokenExpiresAt().minusSeconds(300))) {
@@ -66,22 +67,24 @@ public class GraphUserTokenProvider {
                 }
                 user.setMicrosoftTokenExpiresAt(Instant.now().plusSeconds(expiresIn));
                 
-                // if the refresh token is expired
-                if (resp.getStatusCode() == HttpStatus.BAD_REQUEST && body != null) {
-                    String error = (String) body.get("error");
-                    if ("invalid_grant".equals(error)) {
-                        user.setMicrosoftAccessToken(null);
-                        user.setMicrosoftRefreshToken(null);
-                        user.setMicrosoftTokenExpiresAt(null);
-                        userRepository.save(user);
-                        
-                        throw new RuntimeException("MICROSOFT_REAUTH_REQUIRED");
-                    }
-                }
                 userRepository.save(user);
                 
                 return newAccessToken;
             }
+
+            // if the refresh token is expired
+            if (resp.getStatusCode() == HttpStatus.BAD_REQUEST && body != null) {
+                String error = (String) body.get("error");
+                if ("invalid_grant".equals(error)) {
+                    user.setMicrosoftAccessToken(null);
+                    user.setMicrosoftRefreshToken(null);
+                    user.setMicrosoftTokenExpiresAt(null);
+                    userRepository.save(user);
+                    
+                    throw new RuntimeException("MICROSOFT_REAUTH_REQUIRED");
+                }
+            }
+
             
             throw new IllegalStateException("Failed to refresh Microsoft token: " + resp.getStatusCode());
             
