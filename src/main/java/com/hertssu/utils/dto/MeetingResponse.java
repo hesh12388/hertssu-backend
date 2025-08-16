@@ -1,63 +1,68 @@
 package com.hertssu.utils.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MeetingResponse {
+    
+    // Zoom meeting ID 
+    @JsonProperty("id")
     private String id;
-    private String subject;
-
-
-    private TimeBlock start;                  
-    private TimeBlock end;                    
-    private OnlineMeeting onlineMeeting;    
-    private Organizer organizer;             
-    private List<Attendee> attendees;        
-
-    public OffsetDateTime getStartDateTime() {
-        return start == null ? null
-            : ZonedDateTime.of(start.getDateTime(), ZoneId.of(start.getTimeZone())).toOffsetDateTime();
+    
+    // Meeting topic/subject
+    @JsonProperty("topic")
+    private String topic;
+    
+    // Join URL
+    @JsonProperty("join_url")
+    private String joinUrl;
+    
+    // Alternative join URL for web browsers
+    @JsonProperty("start_url")
+    private String startUrl;
+    
+    // Meeting password
+    @JsonProperty("password")
+    private String password;
+    
+    // Meeting start time
+    @JsonProperty("start_time")
+    private String startTime;
+    
+    // Meeting duration in minutes
+    @JsonProperty("duration")
+    private Integer duration;
+    
+    // Meeting timezone
+    @JsonProperty("timezone")
+    private String timezone;
+    
+    // Meeting status
+    @JsonProperty("status")
+    private String status;
+    
+    // Meeting UUID (unique identifier)
+    @JsonProperty("uuid")
+    private String uuid;
+    
+    // Host ID
+    @JsonProperty("host_id")
+    private String hostId;
+    
+    // Created at timestamp
+    @JsonProperty("created_at")
+    private String createdAt;
+    
+    // Convenience methods for database storage
+    public String getZoomMeetingId() {
+        return this.id;
     }
-    public OffsetDateTime getEndDateTime() {
-        return end == null ? null
-            : ZonedDateTime.of(end.getDateTime(), ZoneId.of(end.getTimeZone())).toOffsetDateTime();
+    
+    public String getZoomJoinUrl() {
+        return this.joinUrl;
     }
-    public String getJoinUrl() {
-        return onlineMeeting == null ? null : onlineMeeting.getJoinUrl();
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class TimeBlock {
-        private java.time.LocalDateTime dateTime;
-        private String timeZone;
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class OnlineMeeting {
-        private String joinUrl;
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Organizer {
-        private EmailAddress emailAddress;
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Attendee {
-        private EmailAddress emailAddress;
-        private String type;
-    }
-
-    @Data @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class EmailAddress {
-        private String address;     
-        private String name;   
-    }
+    
 }
