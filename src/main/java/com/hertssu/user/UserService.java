@@ -6,10 +6,16 @@ import com.hertssu.model.Committee;
 import com.hertssu.model.Subcommittee;
 import com.hertssu.model.User;
 import com.hertssu.model.UserSupervisor;
+import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.Subcommittee.SubcommitteeRepository;
 import com.hertssu.user.dto.AccountRequestDTO;
 import com.hertssu.user.dto.CreateUserRequest;
+import com.hertssu.user.dto.UserCardDto;
 import com.hertssu.user.dto.UserResponse;
+
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.EntityManager;
+
 import com.hertssu.hierarchy.UserSupervisorRepository;
 import com.hertssu.interview.AccountRequestRepository;
 
@@ -17,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.hertssu.hierarchy.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +38,8 @@ public class UserService {
     private final UserSupervisorRepository userSupervisorRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final AccountRequestRepository accountRequestRepository;
+    private final EntityManager em;
+    private final HierarchyService hierarchy;
     
     public UserResponse createUser(CreateUserRequest createUserRequestDTO) {
         // Check if user with email already exists
@@ -190,5 +198,36 @@ public class UserService {
     private List<User> findByRole(String role) {
         List<User> users = userRepository.findByRole(role);
         return users;
+    }
+
+    public List<UserCardDto> searchUsersVisibleTo(AuthUserPrincipal me, String q, Integer committeeFilter) {
+        List<Long> allowed = hierarchy.getAllBelowIds(me.getId());
+        if (allowed.isEmpty()) return List.of();
+
+        String base =
+        "select new com.hertssu.progression.dto.UserCardDto(u.id, concat(u.firstname,' ',u.lastname), u.role, u.committee.id, u.committee.name) " +
+        "from User u " +
+        "where u.id in :ids ";
+
+        StringBuilder hql = new StringBuilder(base);
+        if (q != null && !q.isBlank()) {
+        hql.append("and (upper(u.firstname) like :q or upper(u.lastname) like :q or upper(u.email) like :q) ");
+        }
+        if (committeeFilter != null) {
+        hql.append("and u.committee.id = :cid ");
+        }
+        hql.append("order by upper(u.firstname) asc, upper(u.lastname) asc");
+
+        TypedQuery<UserCardDto> query = em.createQuery(hql.toString(), UserCardDto.class)
+            .setParameter("ids", allowed);
+
+        if (q != null && !q.isBlank()) {
+        query.setParameter("q", "%" + q.trim().toUpperCase() + "%");
+        }
+        if (committeeFilter != null) {
+        query.setParameter("cid", committeeFilter);
+        }
+        query.setMaxResults(50);
+        return query.getResultList();
     }
 }
