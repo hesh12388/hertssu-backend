@@ -1,5 +1,6 @@
 package com.hertssu.interview;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -9,7 +10,10 @@ import com.hertssu.interview.dto.InterviewUpdateRequest;
 import com.hertssu.hierarchy.HierarchyService;
 import com.hertssu.interview.dto.InterviewLogRequest;
 import com.hertssu.interview.dto.InterviewResponse;
+import com.hertssu.model.AccountRequest;
+import com.hertssu.model.Committee;
 import com.hertssu.model.Interview;
+import com.hertssu.model.Subcommittee;
 import com.hertssu.model.User;
 import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.user.UserRepository;
@@ -18,6 +22,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import com.hertssu.utils.dto.MeetingResponse;
+import com.hertssu.Committee.CommitteeRepository;
+import com.hertssu.Subcommittee.SubcommitteeRepository;
 @Service
 @RequiredArgsConstructor
 public class InterviewService {
@@ -26,6 +32,9 @@ public class InterviewService {
     private final UserRepository userRepository;
     private final HierarchyService hierarchyService;
     private final ZoomMeetingService teams;
+    private final AccountRequestRepository accountRequestRepository;
+    private final CommitteeRepository committeeRepository;
+    private final SubcommitteeRepository subcommitteeRepository;
 
 
     @Transactional
@@ -124,7 +133,13 @@ public class InterviewService {
         interview.setNotes(request.getNotes());
         interview.setStatus("LOGGED");
 
-        interviewRepository.save(interview);
+        
+        Interview savedInterview = interviewRepository.save(interview);
+
+        if (Boolean.TRUE.equals(request.getAccepted())) {
+            createAccountRequest(savedInterview);
+        }
+
 
         return InterviewResponse.builder()
                         .id(interview.getId())
@@ -153,7 +168,42 @@ public class InterviewService {
                         .build();
     }
 
-    
+    private void createAccountRequest(Interview interview) {
+        // Check if account request already exists for this interview
+        if (accountRequestRepository.existsByInterviewId(interview.getId())) {
+            return;
+        }
+        
+        // Extract first name and last name from the full name
+        String[] nameParts = interview.getName().trim().split("\\s+", 2);
+        String firstName = nameParts[0];
+        String lastName = nameParts.length > 1 ? nameParts[1] : "";
+        
+        // Map committee and subcommittee names to IDs
+        Committee committee = committeeRepository.findByName(interview.getCommittee());
+        Subcommittee subcommittee = null;
+        if(interview.getSubCommittee() != null){
+            subcommittee = subcommitteeRepository.findByName(interview.getSubCommittee());
+        }
+        AccountRequest accountRequest = AccountRequest.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(interview.getGafEmail())
+                .role(interview.getPosition()) 
+                .committee(committee)
+                .subcommittee(subcommittee)
+                .interviewId(interview.getId())
+                .gafId(interview.getGafId())
+                .phoneNumber(interview.getPhoneNumber())
+                .requestedAt(LocalDateTime.now())
+                .notes(interview.getNotes())
+                .build();
+        
+        accountRequestRepository.save(accountRequest);
+    }
+
+
+
     public List<InterviewResponse> getMyInterviews(AuthUserPrincipal me) {
 
         User currentUser = userRepository.getReferenceById(me.getId());
