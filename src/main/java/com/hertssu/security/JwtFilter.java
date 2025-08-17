@@ -30,7 +30,6 @@ public class JwtFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -58,14 +57,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 AuthUserPrincipal principal = new AuthUserPrincipal(
                     uid, email, name, role, committeeId, committee, subcommitteeId, subcommittee
                 );
-
+                
                 UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(principal, null, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
+                System.out.println("=== JWT VALIDATION FAILED ===");
+                System.out.println("Token: " + token);
+                System.out.println("Error: " + e.getMessage());
+                e.printStackTrace();
                 SecurityContextHolder.clearContext();
-                return;
             }
         }
 

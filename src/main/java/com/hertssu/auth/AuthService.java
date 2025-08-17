@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
-import java.time.Instant;
 import java.util.Base64;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -61,16 +60,14 @@ public class AuthService {
         return new String[]{newAccessToken, newRefreshToken};
     }
 
-    public String[] authenticate_oauth(String id_token, String access_token, String refresh_token) {
+    public String[] authenticate_oauth(String id_token) {
         try {
             // Verify and decode the Microsoft ID token
             DecodedJWT jwt = verifyMicrosoftToken(id_token);
             
             // Extract user information from verified token
             String email = jwt.getClaim("email").asString();
-            String microsoftUserId = jwt.getSubject();
-            
-    
+                
             if (email == null) {
                 throw new RuntimeException("Email not found in Microsoft ID token");
             }
@@ -78,14 +75,7 @@ public class AuthService {
             // Find existing user and  throw error if not found
             User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found. Please register first."));
-            
-            // Store Microsoft tokens for API calls
-            user.setMicrosoftAccessToken(access_token);
-            user.setMicrosoftRefreshToken(refresh_token);
-            user.setMicrosoftUserId(microsoftUserId);
-            user.setMicrosoftTokenExpiresAt(Instant.now().plusSeconds(3600));
-            userRepository.save(user);
-            
+                
             // Generate your JWT tokens
             String newAccessToken = jwtUtil.generateToken(user);
             String newRefreshToken = jwtUtil.generateRefreshToken(user);

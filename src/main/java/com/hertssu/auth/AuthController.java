@@ -44,7 +44,7 @@ public class AuthController {
     @PostMapping("/oauth")
     public ResponseEntity<LoginResponse> oauth_login(@RequestBody OAuthLoginRequest request){
         try{
-            String [] tokens = authService.authenticate_oauth(request.getId_token(), request.getAccess_token(), request.getRefresh_token());
+            String [] tokens = authService.authenticate_oauth(request.getId_token());
             return ResponseEntity.ok(new LoginResponse(tokens[0], tokens[1]));
         }
         catch(RuntimeException e){
