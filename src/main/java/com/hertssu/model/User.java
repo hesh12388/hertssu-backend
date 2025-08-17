@@ -1,7 +1,5 @@
 package com.hertssu.model;
 
-import java.time.Instant;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,17 +36,5 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subcommittee_id", nullable = true)
     private Subcommittee subcommittee;
-
-    @Column(name = "microsoft_access_token", columnDefinition = "TEXT")
-    private String microsoftAccessToken;
-
-    @Column(name = "microsoft_refresh_token", columnDefinition = "TEXT")
-    private String microsoftRefreshToken;
-
-    @Column(name = "microsoft_user_id")
-    private String microsoftUserId;
-
-    @Column(name = "microsoft_token_expires_at")
-    private Instant microsoftTokenExpiresAt;
 }
 

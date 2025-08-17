@@ -23,7 +23,7 @@ public class AssignableUser {
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.email = user.getEmail();
-        this.role = user.getRole().toString(); // Assuming role is an enum
+        this.role = user.getRole().toString();
     }
     
     // Helper method to get full name for display

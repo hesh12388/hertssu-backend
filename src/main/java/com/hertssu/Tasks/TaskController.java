@@ -5,7 +5,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.hertssu.Tasks.dto.*;
 import com.hertssu.security.AuthUserPrincipal;
-
+import com.hertssu.Tasks.dto.EntityType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 @RestController
@@ -72,20 +72,20 @@ public class TaskController {
             @PathVariable Long taskId,
             @Valid @RequestBody CreateCommentRequest request,
             @AuthenticationPrincipal AuthUserPrincipal currentUser) {
-        CommentResponse response = commentService.addComment(taskId, request, currentUser.getId());
+        CommentResponse response = commentService.addComment(taskId, EntityType.TASK, request, currentUser.getId());
         return ResponseEntity.ok(response);
     }
     
     @GetMapping("/{taskId}/comments")
     public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long taskId) {
-        List<CommentResponse> comments = commentService.getComments(taskId);
+        List<CommentResponse> comments = commentService.getComments(taskId, EntityType.TASK);
         return ResponseEntity.ok(comments);
     }
     
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long commentId) {
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(commentId, EntityType.TASK);
         return ResponseEntity.noContent().build();
     }
 
@@ -95,27 +95,27 @@ public class TaskController {
             @PathVariable Long taskId,
             @Valid @ModelAttribute UploadDocumentRequest request,
             @AuthenticationPrincipal AuthUserPrincipal currentUser) {
-        DocumentResponse response = documentService.uploadDocument(taskId, request, currentUser.getId());
+        DocumentResponse response = documentService.uploadDocument(taskId, EntityType.TASK, request, currentUser.getId());
         return ResponseEntity.ok(response);
     }
     
     @GetMapping("/{taskId}/documents")
     public ResponseEntity<List<DocumentResponse>> getDocuments(@PathVariable Long taskId) {
-        List<DocumentResponse> documents = documentService.getDocuments(taskId);
+        List<DocumentResponse> documents = documentService.getDocuments(taskId, EntityType.TASK);
         return ResponseEntity.ok(documents);
     }
     
     @GetMapping("/documents/{documentId}/download")
     public ResponseEntity<DocumentDownloadResponse> downloadDocument(
             @PathVariable Long documentId) {
-        DocumentDownloadResponse response = documentService.downloadDocument(documentId);
+        DocumentDownloadResponse response = documentService.downloadDocument(documentId, EntityType.TASK);
         return ResponseEntity.ok(response);
     }
     
     @DeleteMapping("/documents/{documentId}")
     public ResponseEntity<Void> deleteDocument(
             @PathVariable Long documentId) {
-        documentService.deleteDocument(documentId);
+        documentService.deleteDocument(documentId, EntityType.TASK);
         return ResponseEntity.noContent().build();
     }
 }

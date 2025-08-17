@@ -10,10 +10,9 @@ import lombok.RequiredArgsConstructor;
 import com.hertssu.Tasks.dto.CreateCommentRequest;
 import com.hertssu.Tasks.dto.UserSummaryResponse;
 import com.hertssu.Tasks.dto.CommentResponse;
-import com.hertssu.model.TaskComment;
-import com.hertssu.model.Task;
-import com.hertssu.model.User;
-
+import com.hertssu.Tasks.dto.EntityType;
+import com.hertssu.model.*;
+import com.hertssu.Proposals.*;
 import com.hertssu.user.UserRepository;
 
 @Service
@@ -22,51 +21,130 @@ import com.hertssu.user.UserRepository;
 public class CommentService {
 
     private final TaskCommentRepository taskCommentRepository;
+    private final ProposalCommentRepository proposalCommentRepository;
+    private final CrossCommitteeRequestCommentRepository crossCommitteeRequestCommentRepository;
+    
     private final TaskRepository taskRepository;
+    private final ProposalRepository proposalRepository;
+    private final CrossCommitteeRequestRepository crossCommitteeRequestRepository;
+    
     private final UserRepository userRepository;
 
-
-    // Add Comment to Task
-    public CommentResponse addComment(Long taskId, CreateCommentRequest request, Long currentUserId) {
-        // Find the task
-        Task task = taskRepository.getReferenceById(taskId);
-        
-        // Find the current user
+    // Generic Add Comment
+    public CommentResponse addComment(Long entityId, EntityType entityType, CreateCommentRequest request, Long currentUserId) {
         User user = userRepository.getReferenceById(currentUserId);
         
-        // Create the comment
+        switch (entityType) {
+            case TASK:
+                return addTaskComment(entityId, request, user);
+            case PROPOSAL:
+                return addProposalComment(entityId, request, user);
+            case CROSS_COMMITTEE_REQUEST:
+                return addCrossCommitteeRequestComment(entityId, request, user);
+            default:
+                throw new IllegalArgumentException("Unsupported entity type: " + entityType);
+        }
+    }
+
+    // Generic Get Comments
+    public List<CommentResponse> getComments(Long entityId, EntityType entityType) {
+        switch (entityType) {
+            case TASK:
+                return getTaskComments(entityId);
+            case PROPOSAL:
+                return getProposalComments(entityId);
+            case CROSS_COMMITTEE_REQUEST:
+                return getCrossCommitteeRequestComments(entityId);
+            default:
+                throw new IllegalArgumentException("Unsupported entity type: " + entityType);
+        }
+    }
+
+    // Generic Delete Comment
+    public void deleteComment(Long commentId, EntityType entityType) {
+        switch (entityType) {
+            case TASK:
+                taskCommentRepository.deleteById(commentId);
+                break;
+            case PROPOSAL:
+                proposalCommentRepository.deleteById(commentId);
+                break;
+            case CROSS_COMMITTEE_REQUEST:
+                crossCommitteeRequestCommentRepository.deleteById(commentId);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported entity type: " + entityType);
+        }
+    }
+
+    // Private methods for specific entity types
+    private CommentResponse addTaskComment(Long taskId, CreateCommentRequest request, User user) {
+        Task task = taskRepository.getReferenceById(taskId);
         TaskComment comment = new TaskComment();
         comment.setTask(task);
         comment.setUser(user);
         comment.setContent(request.getContent());
-        
-        // Save to database
         TaskComment savedComment = taskCommentRepository.save(comment);
-        
-        // Convert to response DTO and return
-        return convertToCommentResponse(savedComment);
+        return convertTaskCommentToResponse(savedComment);
     }
 
-    // Get All Comments for a Task
-    public List<CommentResponse> getComments(Long taskId) {
-       
-        // Fetch all comments for this task
+    private CommentResponse addProposalComment(Long proposalId, CreateCommentRequest request, User user) {
+        Proposal proposal = proposalRepository.getReferenceById(proposalId);
+        ProposalComment comment = new ProposalComment();
+        comment.setProposal(proposal);
+        comment.setUser(user);
+        comment.setContent(request.getContent());
+        ProposalComment savedComment = proposalCommentRepository.save(comment);
+        return convertProposalCommentToResponse(savedComment);
+    }
+
+    private CommentResponse addCrossCommitteeRequestComment(Long requestId, CreateCommentRequest request, User user) {
+        CrossCommitteeRequest crossCommitteeRequest = crossCommitteeRequestRepository.getReferenceById(requestId);
+        CrossCommitteeRequestComment comment = new CrossCommitteeRequestComment();
+        comment.setCrossCommitteeRequest(crossCommitteeRequest);
+        comment.setUser(user);
+        comment.setContent(request.getContent());
+        CrossCommitteeRequestComment savedComment = crossCommitteeRequestCommentRepository.save(comment);
+        return convertCrossCommitteeRequestCommentToResponse(savedComment);
+    }
+
+    private List<CommentResponse> getTaskComments(Long taskId) {
         List<TaskComment> comments = taskCommentRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
-        
-        // Convert to response DTOs
-        return comments.stream()
-                .map(this::convertToCommentResponse)
-                .collect(Collectors.toList());
+        return comments.stream().map(this::convertTaskCommentToResponse).collect(Collectors.toList());
     }
 
-    // Delete Comment
-    public void deleteComment( Long commentId) {
-        // Delete the comment
-        taskCommentRepository.deleteById(commentId);
+    private List<CommentResponse> getProposalComments(Long proposalId) {
+        List<ProposalComment> comments = proposalCommentRepository.findByProposalIdOrderByCreatedAtAsc(proposalId);
+        return comments.stream().map(this::convertProposalCommentToResponse).collect(Collectors.toList());
     }
 
-    // method for converting comment to response DTO
-    private CommentResponse convertToCommentResponse(TaskComment comment) {
+    private List<CommentResponse> getCrossCommitteeRequestComments(Long requestId) {
+        List<CrossCommitteeRequestComment> comments = crossCommitteeRequestCommentRepository.findByCrossCommitteeRequestIdOrderByCreatedAtAsc(requestId);
+        return comments.stream().map(this::convertCrossCommitteeRequestCommentToResponse).collect(Collectors.toList());
+    }
+
+    // Conversion methods
+    private CommentResponse convertTaskCommentToResponse(TaskComment comment) {
+        CommentResponse response = new CommentResponse();
+        response.setId(comment.getId());
+        response.setContent(comment.getContent());
+        response.setUser(convertToUserSummary(comment.getUser()));
+        response.setCreatedAt(comment.getCreatedAt());
+        response.setUpdatedAt(comment.getUpdatedAt());
+        return response;
+    }
+
+    private CommentResponse convertProposalCommentToResponse(ProposalComment comment) {
+        CommentResponse response = new CommentResponse();
+        response.setId(comment.getId());
+        response.setContent(comment.getContent());
+        response.setUser(convertToUserSummary(comment.getUser()));
+        response.setCreatedAt(comment.getCreatedAt());
+        response.setUpdatedAt(comment.getUpdatedAt());
+        return response;
+    }
+
+    private CommentResponse convertCrossCommitteeRequestCommentToResponse(CrossCommitteeRequestComment comment) {
         CommentResponse response = new CommentResponse();
         response.setId(comment.getId());
         response.setContent(comment.getContent());
