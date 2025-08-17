@@ -109,7 +109,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
      */
     @Query("SELECT m FROM Meeting m WHERE m.createdBy = :user AND m.deleted = false " +
            "AND m.recurrenceRule IS NOT NULL AND m.recurrenceRule != '' " +
-           "AND (m.reccurenceUntil IS NULL OR m.reccurenceUntil >= :rangeStart) " +
+           "AND (m.recurrenceUntil IS NULL OR m.recurrenceUntil >= :rangeStart) " +
            "AND m.date <= :rangeEnd " +
            "ORDER BY m.date ASC, m.startTime ASC")
     List<Meeting> findRecurringMeetingsForRange(

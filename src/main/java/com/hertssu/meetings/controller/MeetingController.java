@@ -72,14 +72,14 @@ public class MeetingController {
                     .date(currentDate)
                     .startTime(start)
                     .endTime(end)
-                    .isAllDay(req.isAllDay())
+                    .isAllDay(req.getIsAllDay())
                     .participants(participants)
                     .createdBy(creator)
                     .meetingStatus("SCHEDULED")
                     .createdAt(LocalDateTime.now())
                     .recurrenceId(recurrenceId)
                     .recurrenceRule(recurrenceRule)
-                    .reccurenceUntil(until)
+                    .recurrenceUntil(until)
                     .reminders(req.getReminders())
                     .build();
 

@@ -24,4 +24,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u.id from User u where u.subcommittee.id = :subId and upper(u.role) in :roles")
     List<Long> idsBySubcommitteeAndRoles(@Param("subId") Integer subcommitteeId,
                                             @Param("roles") Collection<String> roles);
+
+    List<User> findByEmailIn(List<String> emails);
 }

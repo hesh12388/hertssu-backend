@@ -67,11 +67,10 @@ public class MeetingResponseDto {
                                         .lastName(u.getLastName() != null ? u.getLastName() : "")
                                         .build())
                                 .collect(Collectors.toList())
-                ) 
-
+                )
                 .recurrenceRule(m.getRecurrenceRule())
                 .recurrenceId(m.getRecurrenceId())
-                .recurrenceUntil(m.getReccurenceUntil() != null ? m.getReccurenceUntil().format(dateFmt) : null)
+                .recurrenceUntil(m.getRecurrenceUntil() != null ? m.getRecurrenceUntil().format(dateFmt) : null)
                 .reminders(m.getReminders() != null ? m.getReminders() : Collections.emptyList())
                 .meetingStatus(m.getMeetingStatus())
                 .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : null)

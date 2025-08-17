@@ -59,7 +59,7 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         meeting.setReminders(req.getReminders());
         logger.info("🔁 Recurrence={}, reminders={}", req.getRecurrenceRule(), req.getReminders());
 
-        if (req.isAllDay()) {
+        if (Boolean.TRUE.equals(req.getIsAllDay())) {
             meeting.setIsAllDay(true);
             meeting.setStartTime(LocalTime.of(0, 0));
             meeting.setEndTime(LocalTime.of(23, 59));
@@ -540,7 +540,7 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         
         String recurrenceRule = baseMeeting.getRecurrenceRule().toUpperCase().trim();
         LocalDate currentDate = baseMeeting.getDate();
-        LocalDate until = baseMeeting.getReccurenceUntil(); // Note: there's a typo in your original field name
+        LocalDate until = baseMeeting.getRecurrenceUntil(); // Note: there's a typo in your original field name
         
         // Determine the recurrence pattern
         ChronoUnit incrementUnit;
@@ -614,7 +614,7 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         occurrence.setUpdatedAt(baseMeeting.getUpdatedAt());
         occurrence.setRecurrenceId(baseMeeting.getRecurrenceId());
         occurrence.setRecurrenceRule(baseMeeting.getRecurrenceRule());
-        occurrence.setReccurenceUntil(baseMeeting.getReccurenceUntil());
+        occurrence.setRecurrenceUntil(baseMeeting.getRecurrenceUntil());
         occurrence.setReminders(baseMeeting.getReminders());
         occurrence.setZoomMeetingId(baseMeeting.getZoomMeetingId());
         occurrence.setJoinUrl(baseMeeting.getJoinUrl());

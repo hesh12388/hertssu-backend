@@ -78,7 +78,8 @@ public class Meeting {
 
     private String recurrenceRule; 
     private String recurrenceId;
-    private LocalDate reccurenceUntil;
+    
+    private LocalDate recurrenceUntil;
 
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MeetingNote> notes;
