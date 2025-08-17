@@ -11,11 +11,14 @@ import com.hertssu.model.UserSupervisor;
 
 import lombok.AllArgsConstructor;
 import com.hertssu.model.User;
+import com.hertssu.user.UserRepository;
+
 @Service
 @AllArgsConstructor
 public class HierarchyService {
     
     private final UserSupervisorRepository userSupervisorRepository;
+    private final UserRepository userRepository;
 
     // get those who report directly to me
     public List<User> getDirectReports(User supervisor) {
@@ -49,5 +52,9 @@ public class HierarchyService {
         return result;
     }
 
-
+    public List<User> getAllBelowByUserId(Long userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        return getAllBelow(user);
+    }
 }

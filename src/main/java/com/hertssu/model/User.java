@@ -20,10 +20,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
+    @Column(name= "firstname", nullable = false)
     private String firstName;
 
-    @Column(nullable = false)
+    @Column(name= "lastname", nullable = false)
     private String lastName;
 
     @Column(nullable = false)
