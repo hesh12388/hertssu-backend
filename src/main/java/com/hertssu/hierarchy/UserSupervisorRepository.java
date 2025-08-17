@@ -13,4 +13,6 @@ public interface UserSupervisorRepository extends JpaRepository <UserSupervisor,
 
     List<UserSupervisor> findByUser(User user);
     
+    void deleteByUser(User user);
+    void deleteBySupervisor(User supervisor);
 }

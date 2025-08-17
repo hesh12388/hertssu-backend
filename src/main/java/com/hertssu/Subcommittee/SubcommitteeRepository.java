@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.hertssu.model.Subcommittee;
 
 @Repository
-public interface SubcommitteeRepository extends JpaRepository<Subcommittee, Integer> {}
+public interface SubcommitteeRepository extends JpaRepository<Subcommittee, Integer> {
+    Subcommittee findByName(String name);
+}

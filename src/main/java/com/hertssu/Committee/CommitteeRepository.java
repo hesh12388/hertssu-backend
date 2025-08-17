@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.hertssu.model.Committee;
 
 @Repository  
-public interface CommitteeRepository extends JpaRepository<Committee, Integer> {}
+public interface CommitteeRepository extends JpaRepository<Committee, Integer> {
+    Committee findByName(String name);
+}

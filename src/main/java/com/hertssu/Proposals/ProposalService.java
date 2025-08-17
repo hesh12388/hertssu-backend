@@ -113,13 +113,27 @@ public class ProposalService {
         // Update the status
         proposal.setStatus(newStatus);
         
-        // If proposal is completed, mark all cross-committee requests as completed too
-        if (newStatus == ProposalStatus.COMPLETED) {
-            List<CrossCommitteeRequest> crossCommitteeRequests = crossCommitteeRequestRepository.findByProposalIdOrderByCreatedAtDesc(proposalId);
-            for (CrossCommitteeRequest crossRequest : crossCommitteeRequests) {
-                crossRequest.setStatus(CrossCommitteeRequestStatus.COMPLETED);
-                crossCommitteeRequestRepository.save(crossRequest);
+        // Update all cross-committee requests to match the proposal status
+        List<CrossCommitteeRequest> crossCommitteeRequests = crossCommitteeRequestRepository.findByProposalIdOrderByCreatedAtDesc(proposalId);
+        for (CrossCommitteeRequest crossRequest : crossCommitteeRequests) {
+            // Convert ProposalStatus to CrossCommitteeRequestStatus
+            CrossCommitteeRequestStatus crossRequestStatus;
+            switch (newStatus) {
+                case IN_PROGRESS:
+                    crossRequestStatus = CrossCommitteeRequestStatus.IN_PROGRESS;
+                    break;
+                case PENDING_REVIEW:
+                    crossRequestStatus = CrossCommitteeRequestStatus.PENDING_REVIEW;
+                    break;
+                case COMPLETED:
+                    crossRequestStatus = CrossCommitteeRequestStatus.COMPLETED;
+                    break;
+                default:
+                    crossRequestStatus = CrossCommitteeRequestStatus.IN_PROGRESS;
+                    break;
             }
+            crossRequest.setStatus(crossRequestStatus);
+            crossCommitteeRequestRepository.save(crossRequest);
         }
         
         // Save the updated proposal
