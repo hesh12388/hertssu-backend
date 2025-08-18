@@ -1,5 +1,6 @@
 package com.hertssu.Tasks;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -96,6 +97,11 @@ public class TaskService {
         Task task = taskRepository.getReferenceById(taskId);
         
         TaskStatus newStatus = request.getStatus();
+        
+        // Set submitted date when task is submitted for review
+        if (newStatus == TaskStatus.PENDING_REVIEW) {
+            task.setSubmittedAt(LocalDateTime.now());
+        }
         
         // Update the status
         task.setStatus(newStatus);
