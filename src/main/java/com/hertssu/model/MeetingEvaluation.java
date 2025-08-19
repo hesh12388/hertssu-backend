@@ -34,4 +34,7 @@ public class MeetingEvaluation {
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    private Boolean attendance;
+    private Boolean isLate;
 }

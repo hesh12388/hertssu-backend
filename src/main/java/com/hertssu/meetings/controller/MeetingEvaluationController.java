@@ -29,7 +29,6 @@ public class MeetingEvaluationController {
             @RequestBody MeetingEvaluationRequest req,
             @AuthenticationPrincipal AuthUserPrincipal me   
     ) {
-        log.info("📥 Incoming evaluation request: {}", req);
         return ResponseEntity.ok(evaluationService.evaluateParticipant(meetingId, req, me));
     }
 
@@ -39,7 +38,6 @@ public class MeetingEvaluationController {
             @PathVariable Long meetingId,
             @AuthenticationPrincipal AuthUserPrincipal currentUser
     ) {
-        log.info("GET /meetings/{}/evaluations by user={}", meetingId, currentUser.getId());
         var list = evaluationService.getEvaluations(meetingId, currentUser);
         return ResponseEntity.ok(list);
     }

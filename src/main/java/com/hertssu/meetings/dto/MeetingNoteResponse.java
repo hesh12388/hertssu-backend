@@ -9,5 +9,5 @@ public class MeetingNoteResponse {
     private Long id;
     private String note;
     private String createdAt;
-    private String author; // author name
+    private String author; 
 }

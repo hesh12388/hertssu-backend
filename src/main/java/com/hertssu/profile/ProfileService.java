@@ -23,12 +23,10 @@ public class ProfileService {
     private final UserRepository userRepository;
 
     public UserProfileResponse getUserProfile(Long userId) {
-        // Get all data
         List<Task> tasks = taskRepository.findByAssigneeId(userId);
         List<Warning> warnings = warningRepository.findByAssigneeIdOrderByIssuedDateDesc(userId);
         List<MeetingEvaluation> evaluations = meetingEvaluationRepository.findByParticipantIdOrderByMeetingDateDesc(userId);
 
-        // Convert to DTOs
         List<TaskSummary> taskSummaries = tasks.stream()
                 .map(this::convertToTaskSummary)
                 .collect(Collectors.toList());
@@ -41,10 +39,8 @@ public class ProfileService {
                 .map(this::convertToPerformanceEvaluationResponse)
                 .collect(Collectors.toList());
 
-        // Calculate performance stats
         PerformanceStats performanceStats = calculatePerformanceStats(evaluations);
 
-        // Get user basic info
         UserBasicInfo userInfo = getUserBasicInfo(userId);
 
         return UserProfileResponse.builder()
@@ -122,7 +118,7 @@ public class ProfileService {
         double overallAverage = (avgTeamwork + avgPerformance + avgCommunication) / 3.0;
 
         return PerformanceStats.builder()
-                .avgTeamwork(Math.round(avgTeamwork * 100.0) / 100.0) // Round to 2 decimal places
+                .avgTeamwork(Math.round(avgTeamwork * 100.0) / 100.0) 
                 .avgPerformance(Math.round(avgPerformance * 100.0) / 100.0)
                 .avgCommunication(Math.round(avgCommunication * 100.0) / 100.0)
                 .overallAverage(Math.round(overallAverage * 100.0) / 100.0)

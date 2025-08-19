@@ -13,9 +13,7 @@ import java.util.List;
 @Repository
 public interface ProposalRepository extends JpaRepository<Proposal, Long> {
 
-    // Find proposals assigned to a user
     List<Proposal> findByAssignee(Subcommittee assignee);
     
-    // Find proposals assigned by a user
     List<Proposal> findByAssigner(Committee assigner); 
 }

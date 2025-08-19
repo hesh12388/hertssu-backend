@@ -57,4 +57,12 @@ public class HierarchyService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         return getAllBelow(user);
     }
+
+    public List<Long> getAllBelowIds(Long supervisorId) {
+        return getAllBelowByUserId(supervisorId)
+                .stream()
+                .map(User::getId)
+                .toList();
+    }
+
 }

@@ -17,6 +17,7 @@ import com.hertssu.profile.dto.UserProfileResponse;
 import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.user.dto.AccountRequestDTO;
 import com.hertssu.user.dto.AssignableUser;
+import com.hertssu.user.dto.UserCardDto;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,5 +91,14 @@ public class UserController {
     public ResponseEntity<Void> deleteAccountRequest(@PathVariable Long id) {
         userService.deleteAccountRequest(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search")
+    public List<UserCardDto> searchUsers(
+        @AuthenticationPrincipal AuthUserPrincipal me,
+        @RequestParam(defaultValue = "") String q,
+        @RequestParam(required = false) Integer committeeId
+    ) {
+        return userService.searchUsersVisibleTo(me, q, committeeId);
     }
 }

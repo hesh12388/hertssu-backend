@@ -2,10 +2,10 @@ package com.hertssu.profile.dto;
 
 import java.time.LocalDateTime;
 
-import com.hertssu.Warnings.dto.WarningSeverity;
-
 import lombok.Builder;
 import lombok.Data;
+import com.hertssu.Warnings.dto.WarningSeverity;
+
 
 @Data
 @Builder

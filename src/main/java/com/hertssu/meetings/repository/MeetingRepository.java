@@ -34,9 +34,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         @Param("user") User user
     );
 
-    /**
-     * Existing method with pagination (keep this for backward compatibility)
-     */
+
     Page<Meeting> findByDateBetweenAndCreatedByAndDeletedFalse(
         LocalDate startDate, 
         LocalDate endDate, 
@@ -44,33 +42,24 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         Pageable pageable
     );
 
-    /**
-     * Find meetings for a specific date
-     */
+
     Page<Meeting> findByDateAndCreatedByAndDeletedFalse(
         LocalDate date, 
         User user, 
         Pageable pageable
     );
 
-    /**
-     * Find upcoming meetings (after today)
-     */
+
     Page<Meeting> findByDateAfterAndCreatedByAndDeletedFalse(
         LocalDate date, 
         User user, 
         Pageable pageable
     );
 
-    /**
-     * Find meetings by recurrence ID
-     */
+
     List<Meeting> findByRecurrenceId(String recurrenceId);
 
-    /**
-     * 🔧 OPTIMIZED: Custom query for history meetings
-     * This query finds meetings that have already started or ended
-     */
+
     @Query("SELECT m FROM Meeting m WHERE m.createdBy.id = :userId " +
            "AND m.deleted = false " +
            "AND (m.date < :nowDate OR (m.date = :nowDate AND m.startTime <= :nowTime)) " +
@@ -82,19 +71,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         Pageable pageable
     );
 
-    /**
-     * 🚀 PERFORMANCE: Additional indexes for better query performance
-     * Add these as database indexes:
-     * 
-     * CREATE INDEX idx_meeting_date_creator ON meetings(date, created_by_id);
-     * CREATE INDEX idx_meeting_date_range ON meetings(date) WHERE deleted = false;
-     * CREATE INDEX idx_meeting_recurrence ON meetings(recurrence_id) WHERE recurrence_id IS NOT NULL;
-     * CREATE INDEX idx_meeting_user_date_time ON meetings(created_by_id, date, start_time) WHERE deleted = false;
-     */
-
-    /**
-     * 🔧 OPTIMIZED: Count total meetings in range (useful for pagination metadata)
-     */
     @Query("SELECT COUNT(m) FROM Meeting m WHERE m.date BETWEEN :startDate AND :endDate " +
            "AND m.createdBy = :user AND m.deleted = false")
     long countByDateBetweenAndCreatedByAndDeletedFalse(
@@ -103,10 +79,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         @Param("user") User user
     );
 
-    /**
-     * 🔧 OPTIMIZED: Find recurring meetings that might generate occurrences in a date range
-     * This helps with server-side recurrence expansion by finding base recurring meetings
-     */
+
     @Query("SELECT m FROM Meeting m WHERE m.createdBy = :user AND m.deleted = false " +
            "AND m.recurrenceRule IS NOT NULL AND m.recurrenceRule != '' " +
            "AND (m.recurrenceUntil IS NULL OR m.recurrenceUntil >= :rangeStart) " +
@@ -133,7 +106,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
       Pageable pageable
   );
 
-  // List version (used by the expanded recurrence method)
   @Query("""
     select distinct m
     from Meeting m
