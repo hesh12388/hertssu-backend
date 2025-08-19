@@ -27,9 +27,13 @@ public class Interview {
 
     private String position;
 
-    private String committee;
-    
-    private String subCommittee;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "committee_id")
+    private Committee committee;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subcommittee_id")
+    private Subcommittee subCommittee;
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;

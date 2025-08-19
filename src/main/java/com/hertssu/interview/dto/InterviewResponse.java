@@ -14,8 +14,8 @@ public class InterviewResponse {
     private String phoneNumber;
     private String gafId;
     private String position;
-    private String committee;
-    private String subCommittee;
+    private CommitteeSummary committee;
+    private SubcommitteeSummary subCommittee;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String status;
