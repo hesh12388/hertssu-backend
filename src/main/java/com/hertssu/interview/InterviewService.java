@@ -7,7 +7,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import com.hertssu.interview.dto.InterviewScheduleRequest;
 import com.hertssu.interview.dto.InterviewUpdateRequest;
+import com.hertssu.interview.dto.SubcommitteeSummary;
 import com.hertssu.hierarchy.HierarchyService;
+import com.hertssu.interview.dto.CommitteeSummary;
 import com.hertssu.interview.dto.InterviewLogRequest;
 import com.hertssu.interview.dto.InterviewResponse;
 import com.hertssu.model.AccountRequest;
@@ -41,6 +43,12 @@ public class InterviewService {
     public InterviewResponse scheduleInterview(InterviewScheduleRequest req, AuthUserPrincipal me) {
         User interviewerRef = userRepository.getReferenceById(me.getId());
 
+        Committee committee = committeeRepository.getReferenceById(req.getCommitteeId());
+        Subcommittee subCommittee = null;
+        if (req.getSubCommitteeId() != null) {
+            subCommittee = subcommitteeRepository.getReferenceById(req.getSubCommitteeId());
+        }
+
        
         String [] attendees = new String[]{req.getGafEmail(), me.getEmail()};
 
@@ -67,8 +75,8 @@ public class InterviewService {
             .phoneNumber(req.getPhoneNumber())
             .gafId(req.getGafId())
             .position(req.getPosition())
-            .committee(req.getCommittee())
-            .subCommittee(req.getSubCommittee())
+            .committee(committee)
+            .subCommittee(subCommittee)
             .startTime(req.getStartTime())
             .endTime(req.getEndTime())
             .status("SCHEDULED")
@@ -87,8 +95,8 @@ public class InterviewService {
                         .phoneNumber(interview.getPhoneNumber())
                         .gafId(interview.getGafId())
                         .position(interview.getPosition())
-                        .committee(interview.getCommittee())
-                        .subCommittee(interview.getSubCommittee())
+                        .committee(mapToCommitteeSummary(interview.getCommittee()))
+                        .subCommittee(mapToSubcommitteeSummary(interview.getSubCommittee()))
                         .startTime(interview.getStartTime())
                         .endTime(interview.getEndTime())
                         .status(interview.getStatus())
@@ -148,8 +156,8 @@ public class InterviewService {
                         .phoneNumber(interview.getPhoneNumber())
                         .gafId(interview.getGafId())
                         .position(interview.getPosition())
-                        .committee(interview.getCommittee())
-                        .subCommittee(interview.getSubCommittee())
+                        .committee(mapToCommitteeSummary(interview.getCommittee()))
+                        .subCommittee(mapToSubcommitteeSummary(interview.getSubCommittee()))
                         .startTime(interview.getStartTime())
                         .endTime(interview.getEndTime())
                         .status(interview.getStatus())
@@ -179,19 +187,14 @@ public class InterviewService {
         String firstName = nameParts[0];
         String lastName = nameParts.length > 1 ? nameParts[1] : "";
         
-        // Map committee and subcommittee names to IDs
-        Committee committee = committeeRepository.findByName(interview.getCommittee());
-        Subcommittee subcommittee = null;
-        if(interview.getSubCommittee() != null){
-            subcommittee = subcommitteeRepository.findByName(interview.getSubCommittee());
-        }
+    
         AccountRequest accountRequest = AccountRequest.builder()
                 .firstName(firstName)
                 .lastName(lastName)
                 .email(interview.getGafEmail())
                 .role(interview.getPosition()) 
-                .committee(committee)
-                .subcommittee(subcommittee)
+                .committee(interview.getCommittee())
+                .subcommittee(interview.getSubCommittee())
                 .interviewId(interview.getId())
                 .gafId(interview.getGafId())
                 .phoneNumber(interview.getPhoneNumber())
@@ -224,8 +227,8 @@ public class InterviewService {
                         .phoneNumber(interview.getPhoneNumber())
                         .gafId(interview.getGafId())
                         .position(interview.getPosition())
-                        .committee(interview.getCommittee())
-                        .subCommittee(interview.getSubCommittee())
+                        .committee(mapToCommitteeSummary(interview.getCommittee()))
+                        .subCommittee(mapToSubcommitteeSummary(interview.getSubCommittee()))
                         .startTime(interview.getStartTime())
                         .endTime(interview.getEndTime())
                         .status(interview.getStatus())
@@ -280,6 +283,11 @@ public class InterviewService {
 
         String[] attendees = { req.getGafEmail(), me.getEmail()};
         User user = userRepository.getReferenceById(me.getId());
+        Committee committee = committeeRepository.getReferenceById(req.getCommitteeId());
+        Subcommittee subCommittee = null;
+        if (req.getSubCommitteeId() != null) {
+            subCommittee = subcommitteeRepository.getReferenceById(req.getSubCommitteeId());
+        }
         teams.updateMeeting(meetingId, subject, startIso, endIso, attendees, user);
 
         try{
@@ -288,8 +296,8 @@ public class InterviewService {
             interview.setPhoneNumber(req.getPhoneNumber());
             interview.setGafId(req.getGafId());
             interview.setPosition(req.getPosition());
-            interview.setCommittee(req.getCommittee());
-            interview.setSubCommittee(req.getSubCommittee());
+            interview.setCommittee(committee);
+            interview.setSubCommittee(subCommittee);
             interview.setStartTime(req.getStartTime());
             interview.setEndTime(req.getEndTime());
 
@@ -302,8 +310,8 @@ public class InterviewService {
                         .phoneNumber(interview.getPhoneNumber())
                         .gafId(interview.getGafId())
                         .position(interview.getPosition())
-                        .committee(interview.getCommittee())
-                        .subCommittee(interview.getSubCommittee())
+                        .committee(mapToCommitteeSummary(interview.getCommittee()))
+                        .subCommittee(mapToSubcommitteeSummary(interview.getSubCommittee()))
                         .startTime(interview.getStartTime())
                         .endTime(interview.getEndTime())
                         .status(interview.getStatus())
@@ -331,6 +339,24 @@ public class InterviewService {
             throw ex;
         }
         
+    }
+
+    private CommitteeSummary mapToCommitteeSummary(Committee committee) {
+        if (committee == null) return null;
+        return new CommitteeSummary(
+            committee.getId(),
+            committee.getSlug(),
+            committee.getName()
+        );
+    }
+
+    private SubcommitteeSummary mapToSubcommitteeSummary(Subcommittee subcommittee) {
+        if (subcommittee == null) return null;
+        return new SubcommitteeSummary(
+            subcommittee.getId(),
+            subcommittee.getSlug(),
+            subcommittee.getName()
+        );
     }
 
 

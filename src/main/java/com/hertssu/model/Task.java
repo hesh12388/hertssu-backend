@@ -54,6 +54,9 @@ public class Task {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
     
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaskComment> comments = new ArrayList<>();

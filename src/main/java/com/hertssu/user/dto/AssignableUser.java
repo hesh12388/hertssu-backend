@@ -23,7 +23,7 @@ public class AssignableUser {
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.email = user.getEmail();
-        this.role = user.getRole().toString();
+        this.role = user.getRole();
     }
     
     // Helper method to get full name for display

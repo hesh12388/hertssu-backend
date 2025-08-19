@@ -11,8 +11,8 @@ public class InterviewUpdateRequest {
     private String phoneNumber;
     private String gafId;
     private String position;
-    private String committee;
-    private String subCommittee;
+    private Integer committeeId;     
+    private Integer subCommitteeId; 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 }

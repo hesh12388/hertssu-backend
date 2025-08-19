@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.hertssu.hierarchy.HierarchyService;
 import com.hertssu.model.User;
+import com.hertssu.profile.ProfileService;
+import com.hertssu.profile.dto.UserProfileResponse;
 import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.user.dto.AccountRequestDTO;
 import com.hertssu.user.dto.AssignableUser;
@@ -28,6 +30,7 @@ public class UserController {
     private final HierarchyService hierarchyService;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final ProfileService profileService;
     
     @GetMapping("/assignable")
     public ResponseEntity<List<AssignableUser>> getAssignableUsers(
@@ -41,6 +44,12 @@ public class UserController {
                 .collect(Collectors.toList());
         
         return ResponseEntity.ok(assignableUsers);
+    }
+
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable Long userId) {
+        UserProfileResponse profile = profileService.getUserProfile(userId);
+        return ResponseEntity.ok(profile);
     }
     
     @PostMapping
