@@ -88,7 +88,7 @@ public class MeetingController {
             try {
                 createdDtos.add(MeetingResponseDto.fromEntity(saved));
             } catch (Exception e) {
-                e.printStackTrace(); // log root cause
+                e.printStackTrace(); 
                 throw e;
             }
 
@@ -115,14 +115,12 @@ public class MeetingController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteSingle(@PathVariable Long id) {
-        logger.info("Deleting single meeting with id={}", id);
         meetingService.deleteMeeting(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/delete/{id}/all")
     public ResponseEntity<Void> deleteAll(@PathVariable String id) {
-        logger.info("Deleting whole meeting series with recurrenceId={}", id);
         meetingService.deleteMeetingSeries(id);
         return ResponseEntity.noContent().build();
     }
@@ -145,10 +143,9 @@ public class MeetingController {
             @PageableDefault(size=10, sort="date", direction=Sort.Direction.DESC) Pageable pageable
     ) {
         try {
-            logger.info("🔍 GET /meetings/history called with offset={}, limit={}", offset, limit);
             
             if (currentUser == null) {
-                logger.error("❌ No authenticated user found");
+                logger.error(" No authenticated user found");
                 return ResponseEntity.status(401).build();
             }
 
@@ -161,12 +158,10 @@ public class MeetingController {
             }
             
             Page<MeetingResponseDto> response = meetings.map(MeetingResponseDto::fromEntity);
-            logger.info("✅ Returning {} history meetings (total: {})", 
-                       response.getNumberOfElements(), response.getTotalElements());
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings/history: {}", e.getMessage(), e);
+            logger.error(" Error in GET /meetings/history: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -183,15 +178,13 @@ public class MeetingController {
     @GetMapping
     public ResponseEntity<List<MeetingResponseDto>> getAll() {
         try {
-            logger.info("🔍 GET /meetings called");
             List<Meeting> meetings = meetingService.getAllMeetings();
             List<MeetingResponseDto> response = meetings.stream()
                     .map(MeetingResponseDto::fromEntity)
                     .toList();
-            logger.info("✅ Returning {} meetings", response.size());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings: {}", e.getMessage(), e);
+            logger.error(" Error in GET /meetings: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -206,12 +199,8 @@ public class MeetingController {
             @RequestParam(defaultValue = "15") int limit
     ) {
         try {
-            logger.info("🚀 GET /meetings/expanded-range called with offset={}, limit={}", offset, limit);
-            logger.info("  - currentUser: {}", currentUser != null ? currentUser.getId() : "null");
-            logger.info("  - from: {}, to: {}", from, to);
-
             if (currentUser == null) {
-                logger.error("❌ No authenticated user found");
+                logger.error(" No authenticated user found");
                 return ResponseEntity.status(401).build();
             }
 
@@ -224,13 +213,13 @@ public class MeetingController {
             Page<MeetingResponseDto> response = expandedMeetings.map(MeetingResponseDto::fromEntity);
             
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("✅ Returning {} expanded meetings (total: {}) in {}ms", 
+            logger.info(" Returning {} expanded meetings (total: {}) in {}ms", 
                        response.getNumberOfElements(), response.getTotalElements(), duration);
             
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings/expanded-range: {}", e.getMessage(), e);
+            logger.error(" Error in GET /meetings/expanded-range: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -247,12 +236,9 @@ public class MeetingController {
             Pageable pageable
     ) {
         try {
-            logger.info("🔍 GET /meetings/range called with offset={}, limit={}", offset, limit);
-            logger.info("  - currentUser: {}", currentUser != null ? currentUser.getId() : "null");
-            logger.info("  - from: {}, to: {}", from, to);
 
             if (currentUser == null) {
-                logger.error("❌ No authenticated user found");
+                logger.error(" No authenticated user found");
                 return ResponseEntity.status(401).build();
             }
 
@@ -266,12 +252,9 @@ public class MeetingController {
             
             Page<MeetingResponseDto> response = page.map(MeetingResponseDto::fromEntity);
             
-            logger.info("✅ Returning {} meetings in range (total: {})", 
-                       response.getNumberOfElements(), response.getTotalElements());
-            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings/range: {}", e.getMessage(), e);
+            logger.error(" Error in GET /meetings/range: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -282,21 +265,17 @@ public class MeetingController {
             @PageableDefault(size=10, sort="startTime", direction=Sort.Direction.ASC) Pageable pageable
     ) {
         try {
-            logger.info("🔍 GET /meetings/today called");
-            logger.info("  - currentUser: {}", currentUser != null ? currentUser.getId() : "null");
-
             if (currentUser == null) {
-                logger.error("❌ No authenticated user found");
+                logger.error(" No authenticated user found");
                 return ResponseEntity.status(401).build();
             }
 
             Page<Meeting> meetings = meetingService.getTodayMeetingsForUser(currentUser.getId(), pageable);
             Page<MeetingResponseDto> response = meetings.map(MeetingResponseDto::fromEntity);
             
-            logger.info("✅ Returning {} today's meetings", response.getTotalElements());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings/today: {}", e.getMessage(), e);
+            logger.error(" Error in GET /meetings/today: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }
@@ -309,11 +288,8 @@ public class MeetingController {
             @PageableDefault(size=10, sort="startTime", direction=Sort.Direction.ASC) Pageable pageable
     ) {
         try {
-            logger.info("🔍 GET /meetings/upcoming called with offset={}, limit={}", offset, limit);
-            logger.info("  - currentUser: {}", currentUser != null ? currentUser.getId() : "null");
-
             if (currentUser == null) {
-                logger.error("❌ No authenticated user found");
+                logger.error(" No authenticated user found");
                 return ResponseEntity.status(401).build();
             }
 
@@ -327,12 +303,8 @@ public class MeetingController {
             
             Page<MeetingResponseDto> response = meetings.map(MeetingResponseDto::fromEntity);
             
-            logger.info("✅ Returning {} upcoming meetings (total: {})", 
-                       response.getNumberOfElements(), response.getTotalElements());
-            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("❌ Error in GET /meetings/upcoming: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
     }

@@ -31,43 +31,37 @@ public class MeetingEvaluationService {
 
     @Transactional
     public MeetingEvaluationResponse evaluateParticipant(Long meetingId, MeetingEvaluationRequest req, AuthUserPrincipal me) {
-        log.info("➡️ evaluateParticipant called: meetingId={}, req={}, userId={}", meetingId, req, me.getId());
 
-        // enforce creator-only again here for defense in depth
         Meeting meeting = meetingRepository.findByMeetingIdAndCreatedById(meetingId, me.getId())
                 .orElseThrow(() -> {
-                    log.error("❌ Access denied: user {} is not creator of meeting {}", me.getId(), meetingId);
+                    log.error("Access denied: user {} is not creator of meeting {}", me.getId(), meetingId);
                     return new AccessDeniedException("Only the meeting creator can submit evaluations.");
                 });
 
-        log.info("✅ Meeting {} found, created by user {}", meetingId, me.getId());
 
-        // verify participant is part of this meeting
         boolean participantInMeeting = meeting.getParticipants() != null &&
                 meeting.getParticipants().stream().anyMatch(u -> u.getId().equals(req.getParticipantId()));
         if (!participantInMeeting) {
-            log.error("❌ Participant {} not found in meeting {}", req.getParticipantId(), meetingId);
+            log.error("Participant {} not found in meeting {}", req.getParticipantId(), meetingId);
             throw new IllegalArgumentException("Participant is not part of this meeting.");
         }
-
-        log.info("✅ Participant {} is part of meeting {}", req.getParticipantId(), meetingId);
 
         User evaluator = userRepository.getReferenceById(me.getId());
         User participant = userRepository.getReferenceById(req.getParticipantId());
 
         MeetingEvaluation eval = MeetingEvaluation.builder()
-                .meeting(meeting)
-                .evaluator(evaluator)
-                .participant(participant)
-                .performance(safeCap(req.getPerformance()))
-                .communication(safeCap(req.getCommunication()))
-                .teamwork(safeCap(req.getTeamwork()))
-                .build();
+            .meeting(meeting)
+            .evaluator(evaluator)
+            .participant(participant)
+            .performance(safeCap(req.getPerformance()))
+            .communication(safeCap(req.getCommunication()))
+            .teamwork(safeCap(req.getTeamwork()))
+            .attendance(req.getAttendance() != null ? req.getAttendance() : false)
+            .isLate(req.getIsLate() != null ? req.getIsLate() : false)
+            .build();
+
 
         evaluationRepository.save(eval);
-
-        log.info("✅ Evaluation saved: id={}, meetingId={}, participantId={}, evaluatorId={}",
-                eval.getId(), meetingId, req.getParticipantId(), me.getId());
 
         return toResponse(eval);
     }
@@ -124,6 +118,9 @@ public class MeetingEvaluationService {
         if (req.getPerformance() != null)   eval.setPerformance(safeCap(req.getPerformance()));
         if (req.getCommunication() != null) eval.setCommunication(safeCap(req.getCommunication()));
         if (req.getTeamwork() != null)      eval.setTeamwork(safeCap(req.getTeamwork()));
+        if (req.getAttendance() != null) eval.setAttendance(req.getAttendance());
+        if (req.getIsLate() != null) eval.setIsLate(req.getIsLate());
+    
 
         evaluationRepository.save(eval);
         return toResponse(eval);
@@ -143,15 +140,17 @@ public class MeetingEvaluationService {
 
     private MeetingEvaluationResponse toResponse(MeetingEvaluation eval) {
         return MeetingEvaluationResponse.builder()
-                .id(eval.getId())
-                .meetingId(eval.getMeeting().getMeetingId())
-                .participantId(eval.getParticipant().getId())
-                .participantName(eval.getParticipant().getFirstName())
-                .evaluatorId(eval.getEvaluator().getId())
-                .evaluatorName(eval.getEvaluator().getFirstName())
-                .performance(eval.getPerformance())
-                .communication(eval.getCommunication())
-                .teamwork(eval.getTeamwork())
-                .build();
+            .id(eval.getId())
+            .meetingId(eval.getMeeting().getMeetingId())
+            .participantId(eval.getParticipant().getId())
+            .participantName(eval.getParticipant().getFirstName())
+            .evaluatorId(eval.getEvaluator().getId())
+            .evaluatorName(eval.getEvaluator().getFirstName())
+            .performance(eval.getPerformance())
+            .communication(eval.getCommunication())
+            .teamwork(eval.getTeamwork())
+            .attendance(eval.getAttendance())
+            .isLate(eval.getIsLate())
+            .build();
     }
 }

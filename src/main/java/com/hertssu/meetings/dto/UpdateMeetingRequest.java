@@ -1,4 +1,3 @@
-// com.hertssu.meetings.dto.UpdateMeetingRequest.java
 package com.hertssu.meetings.dto;
 
 import java.util.List;
@@ -10,16 +9,14 @@ public class UpdateMeetingRequest {
     private String description;
     private String location;
 
-    // ISO strings from the client
-    private String date;       // "YYYY-MM-DD"
-    private String startTime;  // "HH:mm" or "HH:mm:ss"
-    private String endTime;    // "HH:mm" or "HH:mm:ss"
+    private String date;       
+    private String startTime; 
+    private String endTime;    
 
     private Boolean isAllDay;
 
-    // participants as emails, same as create
     private List<String> participants;
 
-    private String recurrenceRule;     // optional
-    private List<Integer> reminders;   // optional
+    private String recurrenceRule;    
+    private List<Integer> reminders;  
 }

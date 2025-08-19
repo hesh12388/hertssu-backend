@@ -37,7 +37,6 @@ public class MeetingResponseDto {
         var dateFmt = DateTimeFormatter.ISO_DATE;
         var timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
-        // Defensive: avoid nulls
         List<User> users = m.getParticipants() != null ? m.getParticipants() : Collections.emptyList();
 
         return MeetingResponseDto.builder()
@@ -50,14 +49,12 @@ public class MeetingResponseDto {
                 .endTime(m.getEndTime() != null ? m.getEndTime().format(timeFmt) : null)
                 .isAllDay(Boolean.TRUE.equals(m.getIsAllDay()))
 
-                // 🔒 Only return safe strings
                 .participantEmails(
                         users.stream()
                                 .map(u -> u.getEmail() != null ? u.getEmail() : "")
                                 .collect(Collectors.toList())
                 )
 
-                // 🔒 Convert to lightweight DTO
                 .participants(
                         users.stream()
                                 .map(u -> ParticipantLiteDto.builder()

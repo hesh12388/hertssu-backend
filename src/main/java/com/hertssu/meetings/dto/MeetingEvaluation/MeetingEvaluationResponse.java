@@ -17,4 +17,6 @@ public class MeetingEvaluationResponse {
     private Integer communication;
     private Integer teamwork;
     private String notes;
+    private Boolean attendance;
+    private Boolean isLate;
 }

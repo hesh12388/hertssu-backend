@@ -14,7 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException; // <- jakarta for Spring Boot 3
+import jakarta.persistence.EntityNotFoundException; 
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -75,7 +75,7 @@ public class MeetingNoteService {
     private MeetingNoteResponse toResponse(MeetingNote note) {
         return MeetingNoteResponse.builder()
                 .id(note.getId())
-                .note(note.getNote())                 // expose as `text` to match frontend
+                .note(note.getNote())                
                 .author(note.getAuthor().getFirstName())
                 .createdAt(note.getCreatedAt() == null ? null : note.getCreatedAt().toString())
                 .build();
