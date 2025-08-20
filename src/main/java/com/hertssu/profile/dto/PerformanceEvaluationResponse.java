@@ -17,4 +17,6 @@ public class PerformanceEvaluationResponse {
     private String evaluatorName;
     private LocalDateTime createdAt;
     private String notes;
+    private boolean isLate;
+    private boolean attendance;
 }

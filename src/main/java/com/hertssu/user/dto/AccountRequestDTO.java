@@ -23,6 +23,7 @@ public class AccountRequestDTO {
     private String phoneNumber;
     private LocalDateTime requestedAt;
     private String notes;
+    private Long supervisorId;
     
     public AccountRequestDTO(AccountRequest accountRequest) {
         this.id = accountRequest.getId();
@@ -43,5 +44,8 @@ public class AccountRequestDTO {
         this.phoneNumber = accountRequest.getPhoneNumber();
         this.requestedAt = accountRequest.getRequestedAt();
         this.notes = accountRequest.getNotes();
+        if (accountRequest.getSupervisor() != null) {
+            this.supervisorId = accountRequest.getSupervisor().getId();
+        }
     }
 }

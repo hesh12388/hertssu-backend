@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import com.hertssu.warnings.dto.WarningSeverity;
+import com.hertssu.Warnings.dto.WarningSeverity;
 
 @Entity
 @Table(name = "warnings")

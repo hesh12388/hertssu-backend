@@ -28,4 +28,6 @@ public class CreateUserRequest {
     private Integer committeeId;
     
     private Integer subcommitteeId;
+
+    private Long supervisorId;
 }

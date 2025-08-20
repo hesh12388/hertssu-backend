@@ -23,33 +23,37 @@ public class ProfileService {
     private final UserRepository userRepository;
 
     public UserProfileResponse getUserProfile(Long userId) {
-        List<Task> tasks = taskRepository.findByAssigneeId(userId);
-        List<Warning> warnings = warningRepository.findByAssigneeIdOrderByIssuedDateDesc(userId);
-        List<MeetingEvaluation> evaluations = meetingEvaluationRepository.findByParticipantIdOrderByMeetingDateDesc(userId);
-
+        // Get last 10 tasks assigned to the user
+        List<Task> tasks = taskRepository.findTop10ByAssigneeIdOrderByCreatedAtDesc(userId);
+        
+        // Get last 10 warnings for the user
+        List<Warning> warnings = warningRepository.findTop10ByAssigneeIdOrderByIssuedDateDesc(userId);
+        
+        // Get the last 20 performance evaluations for the user
+        List<MeetingEvaluation> evaluations = meetingEvaluationRepository.findTop20ByParticipantIdOrderByMeetingDateDesc(userId);
+        
         List<TaskSummary> taskSummaries = tasks.stream()
-                .map(this::convertToTaskSummary)
-                .collect(Collectors.toList());
-
+            .map(this::convertToTaskSummary)
+            .collect(Collectors.toList());
+            
         List<WarningSummary> warningSummaries = warnings.stream()
-                .map(this::convertToWarningSummary)
-                .collect(Collectors.toList());
-
+            .map(this::convertToWarningSummary)
+            .collect(Collectors.toList());
+            
         List<PerformanceEvaluationResponse> evaluationResponses = evaluations.stream()
-                .map(this::convertToPerformanceEvaluationResponse)
-                .collect(Collectors.toList());
-
+            .map(this::convertToPerformanceEvaluationResponse)
+            .collect(Collectors.toList());
+            
         PerformanceStats performanceStats = calculatePerformanceStats(evaluations);
-
         UserBasicInfo userInfo = getUserBasicInfo(userId);
-
+        
         return UserProfileResponse.builder()
-                .user(userInfo)
-                .tasks(taskSummaries)
-                .performanceEvaluations(evaluationResponses)
-                .warnings(warningSummaries)
-                .performanceStats(performanceStats)
-                .build();
+            .user(userInfo)
+            .tasks(taskSummaries)
+            .performanceEvaluations(evaluationResponses)
+            .warnings(warningSummaries)
+            .performanceStats(performanceStats)
+            .build();
     }
 
     private TaskSummary convertToTaskSummary(Task task) {
@@ -86,6 +90,8 @@ public class ProfileService {
                 .evaluatorName(getFullName(evaluation.getEvaluator()))
                 .createdAt(evaluation.getCreatedAt())
                 .notes(evaluation.getNotes())
+                .isLate(evaluation.getIsLate())
+                .attendance(evaluation.getAttendance())
                 .build();
     }
 

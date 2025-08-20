@@ -33,6 +33,9 @@ public class InterviewResponse {
     private String interviewerName;
     private String interviewerEmail;
 
+    private String supervisorName;
+    private String supervisorEmail;
+
     // Teams meeting fields
     private String meetingId;
     private String joinUrl;

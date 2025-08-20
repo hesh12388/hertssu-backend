@@ -44,6 +44,9 @@ public class Interview {
     @JoinColumn(name = "interviewer_id")
     private User interviewer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private User supervisor;
    
     private Integer performance;
     private Integer experience;

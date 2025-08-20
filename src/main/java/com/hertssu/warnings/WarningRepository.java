@@ -11,4 +11,5 @@ public interface WarningRepository extends JpaRepository<Warning, Long> {
     
     // Find all warnings for a specific user (assignee)
     List<Warning> findByAssigneeIdOrderByIssuedDateDesc(Long assigneeId);
+    List<Warning> findTop10ByAssigneeIdOrderByIssuedDateDesc(Long assigneeId);
 }

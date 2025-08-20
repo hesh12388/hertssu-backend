@@ -12,4 +12,5 @@ public interface MeetingEvaluationRepository extends JpaRepository<MeetingEvalua
     Optional<MeetingEvaluation> findByIdAndMeetingMeetingIdAndMeetingCreatedById(UUID id, Long meetingId, Long createdById);
     void deleteByMeeting_MeetingId(Long meetingId);
     List<MeetingEvaluation> findByParticipantIdOrderByMeetingDateDesc(Long participantId);  
+    List<MeetingEvaluation> findTop20ByParticipantIdOrderByMeetingDateDesc(Long participantId);
 }

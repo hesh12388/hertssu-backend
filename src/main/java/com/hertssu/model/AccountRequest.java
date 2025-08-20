@@ -29,11 +29,11 @@ public class AccountRequest {
     @Column(nullable = false)
     private String role;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "committee_id")
     private Committee committee;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subcommittee_id")
     private Subcommittee subcommittee;
 
@@ -51,4 +51,8 @@ public class AccountRequest {
 
     @Column(nullable = true)
     private String notes;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id")
+    private User supervisor;
 }

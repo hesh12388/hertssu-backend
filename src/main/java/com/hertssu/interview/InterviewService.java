@@ -86,6 +86,12 @@ public class InterviewService {
             .meetingPassword(meeting.getPassword())
             .build();
 
+        // If supervisor is provided, set it
+        if (req.getSupervisorId() != null) {
+            User supervisor = userRepository.getReferenceById(req.getSupervisorId());
+            interview.setSupervisor(supervisor);
+        }
+
         try {
             interviewRepository.save(interview);
             return InterviewResponse.builder()
@@ -109,6 +115,8 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
+                        .supervisorName(interview.getSupervisor() != null ? interview.getSupervisor().getFirstName() : null)
+                        .supervisorEmail(interview.getSupervisor() != null ? interview.getSupervisor().getEmail() : null)
                         .meetingId(interview.getMeetingId())
                         .joinUrl(interview.getJoinUrl())
                         .meetingPassword(interview.getMeetingPassword())
@@ -170,6 +178,8 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
+                        .supervisorName(interview.getSupervisor() != null ? interview.getSupervisor().getFirstName() : null)
+                        .supervisorEmail(interview.getSupervisor() != null ? interview.getSupervisor().getEmail() : null)
                         .meetingId(interview.getMeetingId())
                         .joinUrl(interview.getJoinUrl())
                         .meetingPassword(interview.getMeetingPassword())
@@ -202,6 +212,10 @@ public class InterviewService {
                 .notes(interview.getNotes())
                 .build();
         
+        // If supervisor is set, assign it
+        if (interview.getSupervisor() != null) {
+            accountRequest.setSupervisor(interview.getSupervisor());
+        }
         accountRequestRepository.save(accountRequest);
     }
 
@@ -241,6 +255,8 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
+                        .supervisorName(interview.getSupervisor() != null ? interview.getSupervisor().getFirstName() : null)
+                        .supervisorEmail(interview.getSupervisor() != null ? interview.getSupervisor().getEmail() : null)
                         .meetingId(interview.getMeetingId())
                         .joinUrl(interview.getJoinUrl())
                         .meetingPassword(interview.getMeetingPassword())
@@ -324,6 +340,8 @@ public class InterviewService {
                         .notes(interview.getNotes())
                         .interviewerName(interview.getInterviewer().getFirstName())
                         .interviewerEmail(interview.getInterviewer().getEmail())
+                        .supervisorName(interview.getSupervisor() != null ? interview.getSupervisor().getFirstName() : null)
+                        .supervisorEmail(interview.getSupervisor() != null ? interview.getSupervisor().getEmail() : null)
                         .meetingId(interview.getMeetingId())
                         .joinUrl(interview.getJoinUrl())
                         .meetingPassword(interview.getMeetingPassword())

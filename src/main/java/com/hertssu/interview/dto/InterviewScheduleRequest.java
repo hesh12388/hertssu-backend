@@ -19,4 +19,5 @@ public class InterviewScheduleRequest {
     private Integer subCommitteeId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Long supervisorId;
 }

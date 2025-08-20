@@ -4,10 +4,17 @@ import com.hertssu.Committee.CommitteeRepository;
 import com.hertssu.model.AccountRequest;
 import com.hertssu.model.Committee;
 import com.hertssu.model.Subcommittee;
+import com.hertssu.model.Task;
+import com.hertssu.model.TaskComment;
+import com.hertssu.model.TaskDocument;
 import com.hertssu.model.User;
 import com.hertssu.model.UserSupervisor;
 import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.Subcommittee.SubcommitteeRepository;
+import com.hertssu.Tasks.TaskCommentRepository;
+import com.hertssu.Tasks.TaskDocumentRepository;
+import com.hertssu.Tasks.TaskRepository;
+import com.hertssu.Warnings.WarningRepository;
 import com.hertssu.user.dto.AccountRequestDTO;
 import com.hertssu.user.dto.CreateUserRequest;
 import com.hertssu.user.dto.UserCardDto;
@@ -16,8 +23,8 @@ import com.hertssu.user.dto.UserResponse;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.EntityManager;
 
-import com.hertssu.hierarchy.UserSupervisorRepository;
 import com.hertssu.interview.AccountRequestRepository;
+import com.hertssu.meetings.repository.MeetingEvaluationRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -57,6 +64,11 @@ public class UserService {
             subcommittee = subcommitteeRepository.findById(createUserRequestDTO.getSubcommitteeId())
                     .orElseThrow(() -> new RuntimeException("Subcommittee not found with id: " + createUserRequestDTO.getSubcommitteeId()));
         }
+
+        User supervisor = null;
+        if (createUserRequestDTO.getSupervisorId() != null) {
+            supervisor = userRepository.getReferenceById(createUserRequestDTO.getSupervisorId());
+        }
         
         // Create new user
         User user = new User();
@@ -70,9 +82,14 @@ public class UserService {
         
         User savedUser = userRepository.save(user);
         
-        // Assign supervisor based on hierarchy rules
-        assignSupervisor(savedUser);
-        
+        // If supervisor is provided, create relationship
+        if (supervisor != null) {
+            UserSupervisor userSupervisor = new UserSupervisor();
+            userSupervisor.setUser(savedUser);
+            userSupervisor.setSupervisor(supervisor);
+            userSupervisorRepository.save(userSupervisor);
+        }
+    
         return new UserResponse(savedUser);
     }
     
@@ -93,87 +110,9 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         
-        // Delete supervisor relationships
-        userSupervisorRepository.deleteByUser(user);
-        userSupervisorRepository.deleteBySupervisor(user);
-        
         userRepository.delete(user);
     }
     
-    private void assignSupervisor(User user) {
-        List<User> supervisors = findSupervisor(user);
-        
-        for (User supervisor : supervisors) {
-            UserSupervisor userSupervisor = new UserSupervisor();
-            userSupervisor.setUser(user);
-            userSupervisor.setSupervisor(supervisor);
-            userSupervisorRepository.save(userSupervisor);
-        }
-    }
-    
-    private List<User> findSupervisor(User user) {
-        String role = user.getRole().toUpperCase();
-        Committee committee = user.getCommittee();
-        Subcommittee subcommittee = user.getSubcommittee();
-        
-        switch (role) {
-            case "MEMBER":
-                // Supervisor is associate leader of subcommittee (or leader if no associate leader)
-                if (subcommittee != null) {
-                    List<User> supervisors = findSubcommitteeLeader(subcommittee, "ASSOCIATE_LEADER");
-                    if (supervisors == null || supervisors.isEmpty()) {
-                        supervisors = findSubcommitteeLeader(subcommittee, "LEADER");
-                    }
-                    return supervisors;
-                }
-                break;
-                
-            case "ASSOCIATE_LEADER":
-                // Supervisor is leader of same subcommittee
-                if (subcommittee != null) {
-                    return findSubcommitteeLeader(subcommittee, "LEADER");
-                }
-                break;
-                
-            case "LEADER":
-                // Supervisor is associate chairperson (or chairperson if no associate chairperson) of same committee
-                List<User> supervisors = findCommitteeChair(committee, "ASSOCIATE_CHAIRPERSON");
-                if (supervisors == null || supervisors.isEmpty()) {
-                    supervisors = findCommitteeChair(committee, "CHAIRPERSON");
-                }
-                return supervisors;
-                
-            case "ASSOCIATE_CHAIRPERSON":
-                // Supervisor is chairperson of same committee
-                return findCommitteeChair(committee, "CHAIRPERSON");
-                
-            case "CHAIRPERSON":
-                // Supervisor is any officer
-                return findByRole("OFFICER");
-                
-            case "OFFICER":
-                // Supervisor is executive officer
-                return findByRole("EXECUTIVE_OFFICER");
-                
-            case "EXECUTIVE_OFFICER":
-                // Supervisor is vice president
-                return findByRole("VICE_PRESIDENT");
-                
-            case "VICE_PRESIDENT":
-                // Supervisor is president
-                return findByRole("PRESIDENT");
-                
-            case "PRESIDENT":
-                // No supervisor for president
-                return List.of();
-                
-            default:
-                return List.of(); // No supervisor for other roles
-        }
-        
-        return List.of(); // Default case if no supervisor found
-    }
-
     public List<AccountRequestDTO> getAllAccountRequests() {
         List<AccountRequest> accountRequests = accountRequestRepository.findAllByOrderByRequestedAtDesc();
         return accountRequests.stream()
@@ -187,19 +126,6 @@ public class UserService {
         accountRequestRepository.delete(accountRequest);
     }
     
-    private List<User> findSubcommitteeLeader(Subcommittee subcommittee, String role) {
-        return userRepository.findBySubcommitteeAndRole(subcommittee, role);
-    }
-    
-    private List<User> findCommitteeChair(Committee committee, String role) {
-        return userRepository.findByCommitteeAndRole(committee, role);
-    }
-    
-    private List<User> findByRole(String role) {
-        List<User> users = userRepository.findByRole(role);
-        return users;
-    }
-
     public List<UserCardDto> searchUsersVisibleTo(AuthUserPrincipal me, String q, Integer committeeFilter) {
         List<Long> allowed = hierarchy.getAllBelowIds(me.getId());
         if (allowed.isEmpty()) return List.of();
