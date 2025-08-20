@@ -7,7 +7,7 @@ import lombok.Data;
 @Table(name = "user_supervisors")
 @Data
 public class UserSupervisor {
-    @Id @GeneratedValue
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) 
     private Long id;
 
     @ManyToOne

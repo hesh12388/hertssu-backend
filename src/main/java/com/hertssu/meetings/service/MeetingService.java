@@ -495,7 +495,9 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         String recurrenceRule = baseMeeting.getRecurrenceRule().toUpperCase().trim();
         LocalDate currentDate = baseMeeting.getDate();
         LocalDate until = baseMeeting.getRecurrenceUntil(); 
-        
+        System.out.println("Recurrence Rule: " + recurrenceRule);
+        System.out.println("Range Start: " + rangeStart);
+        System.out.println("Range End: " + rangeEnd);
         ChronoUnit incrementUnit;
         int incrementAmount = 1;
         
@@ -514,6 +516,11 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
                 return List.of(baseMeeting);
         }
         
+        if (currentDate.isBefore(rangeStart)){
+            long daysBetween = ChronoUnit.DAYS.between(currentDate, rangeStart);
+            currentDate = currentDate.plusDays(daysBetween);
+        }
+
         int maxOccurrences = 100; 
         int count = 0;
         

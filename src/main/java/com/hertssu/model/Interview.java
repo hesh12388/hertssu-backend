@@ -14,7 +14,7 @@ import java.util.UUID;
 public class Interview {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID) 
     private UUID id;
 
     private String name;

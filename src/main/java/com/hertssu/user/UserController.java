@@ -60,7 +60,6 @@ public class UserController {
     }
     
     @GetMapping
-    @PreAuthorize("hasAnyRole('PRESIDENT','VICE_PRESIDENT', 'EXECUTIVE_OFFICER','OFFICER')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
