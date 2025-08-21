@@ -53,21 +53,10 @@ public class Meeting {
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private List<User> participants;
-
-    @ElementCollection
-    @CollectionTable(
-        name = "meeting_reminders",
-        joinColumns = @JoinColumn(name = "meeting_id")
-    )
-    @Column(name = "minutes_before")
-    private List<Integer> reminders; 
-
     private String joinUrl;
     private String zoomMeetingId;
-
     @ManyToOne
     private User createdBy;
-
     @ManyToOne
     private User updatedBy;
 
@@ -76,20 +65,9 @@ public class Meeting {
     private LocalDateTime updatedAt;
     private LocalDateTime cancelledAt;
 
-    private String recurrenceRule; 
-    private String recurrenceId;
-    
-    private LocalDate recurrenceUntil;
-
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MeetingNote> notes;
+    private String note;
 
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MeetingEvaluation> evaluations;
-
-    @Builder.Default
-    @Column(nullable = false, columnDefinition = "boolean default false")
-    private boolean deleted = false;
-
-    private LocalDateTime deletedAt;
 }

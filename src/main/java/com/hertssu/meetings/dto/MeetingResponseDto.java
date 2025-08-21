@@ -23,10 +23,6 @@ public class MeetingResponseDto {
     private boolean isAllDay;
     private List<String> participantEmails;
     private List<ParticipantLiteDto> participants;
-    private String recurrenceRule;
-    private String recurrenceId;
-    private String recurrenceUntil;
-    private List<Integer> reminders;
     private String meetingStatus;
     private String createdAt;
     private String updatedAt;
@@ -65,10 +61,6 @@ public class MeetingResponseDto {
                                         .build())
                                 .collect(Collectors.toList())
                 )
-                .recurrenceRule(m.getRecurrenceRule())
-                .recurrenceId(m.getRecurrenceId())
-                .recurrenceUntil(m.getRecurrenceUntil() != null ? m.getRecurrenceUntil().format(dateFmt) : null)
-                .reminders(m.getReminders() != null ? m.getReminders() : Collections.emptyList())
                 .meetingStatus(m.getMeetingStatus())
                 .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : null)
                 .updatedAt(m.getUpdatedAt() != null ? m.getUpdatedAt().toString() : null)

@@ -1,15 +1,12 @@
 package com.hertssu.meetings.service;
 
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,10 +17,10 @@ import com.hertssu.meetings.dto.UpdateMeetingRequest;
 import com.hertssu.meetings.repository.MeetingRepository;
 import com.hertssu.model.Meeting;
 import com.hertssu.model.User;
+import com.hertssu.security.AuthUserPrincipal;
 import com.hertssu.user.UserRepository;
 import com.hertssu.utils.ZoomMeetingService;
 import com.hertssu.meetings.repository.MeetingEvaluationRepository;
-import com.hertssu.meetings.repository.MeetingNoteRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -39,232 +36,138 @@ public class MeetingService {
     private final ZoomMeetingService zoomMeetingService;
     private final UserRepository userRepository;
     private final MeetingEvaluationRepository evaluationRepository;
-    private final MeetingNoteRepository noteRepository;
-@Transactional
-public Meeting createMeeting(CreateMeetingRequest req, User creator) {
-    try {
+    private final Clock clock;
+
+    @Transactional
+    public Meeting createMeeting(CreateMeetingRequest req, AuthUserPrincipal creator) {
+        User user = userRepository.findById(creator.getId())
+        .orElseThrow(() -> new MeetingNotFoundException(creator.getId()));
+
+
+        ZoneId zone = resolveZone(user);
+
 
         Meeting meeting = new Meeting();
         meeting.setTitle(req.getTitle());
         meeting.setDescription(req.getDescription());
         meeting.setLocation(req.getLocation());
 
+
         meeting.setDate(LocalDate.parse(req.getDate()));
 
-        meeting.setRecurrenceRule(req.getRecurrenceRule());
-        meeting.setReminders(req.getReminders());
 
         if (Boolean.TRUE.equals(req.getIsAllDay())) {
-            meeting.setIsAllDay(true);
-            meeting.setStartTime(LocalTime.of(0, 0));
-            meeting.setEndTime(LocalTime.of(23, 59));
+        meeting.setIsAllDay(true);
+        meeting.setStartTime(LocalTime.MIDNIGHT);
+        meeting.setEndTime(LocalTime.of(23, 59));
         } else {
-            meeting.setIsAllDay(false);
-            LocalTime start = parseTime(req.getStartTime());
-            LocalTime end = parseTime(req.getEndTime());
-            meeting.setStartTime(start);
-            meeting.setEndTime(end);
+        meeting.setIsAllDay(false);
+        meeting.setStartTime(parseTime(req.getStartTime()));
+        meeting.setEndTime(parseTime(req.getEndTime()));
         }
 
-        if (req.getParticipants() != null && !req.getParticipants().isEmpty()) {
-            List<User> people = userRepository.findByEmailIn(req.getParticipants());
-            meeting.setParticipants(people);
+
+        if (req.getParticipants() != null) {
+            List<String> emails = req.getParticipants();
+            List<User> found = emails.isEmpty() ? List.of() : userRepository.findByEmailIn(emails);
+            Set<String> foundEmails = found.stream().map(User::getEmail).collect(Collectors.toSet());
+            List<String> missing = emails.stream().filter(e -> !foundEmails.contains(e)).toList();
+        if (!missing.isEmpty()) {
+            throw new IllegalArgumentException("Unknown participant emails: " + missing);
+        }
+        meeting.setParticipants(found);
+
         } else {
             meeting.setParticipants(List.of());
         }
 
-        meeting.setCreatedBy(creator);
+
         meeting.setMeetingStatus("SCHEDULED");
-        meeting.setCreatedAt(LocalDateTime.now());
+        meeting.setCreatedAt(LocalDateTime.now(clock));
+        meeting.setUpdatedAt(meeting.getCreatedAt());
+        meeting.setCreatedBy(user);
+        meeting.setUpdatedBy(user);
 
-        Meeting saved = saveWithZoom(meeting, creator);
-
-        return saved;
-
-    } catch (Exception e) {
-        logger.error(" Error creating meeting: {}", e.getMessage(), e);
-        throw new RuntimeException("Failed to create meeting", e);
-    }
-}
+        meeting = meetingRepository.save(meeting);
 
 
-
-    @Transactional(readOnly = true)
-    public Page<Meeting> getMeetingsInRange(Long userId, String from, String to, int offset, int limit) {
         try {
+        String startIso;
+        String endIso;
+        if (meeting.getIsAllDay()) {
+        startIso = toIsoOffset(meeting.getDate(), LocalTime.MIDNIGHT, zone);
+        // end exclusive next day midnight for Zoom
+        endIso = toIsoOffset(meeting.getDate().plusDays(1), LocalTime.MIDNIGHT, zone);
+        } else {
+        startIso = toIsoOffset(meeting.getDate(), meeting.getStartTime(), zone);
+        endIso = toIsoOffset(meeting.getDate(), meeting.getEndTime(), zone);
+        }
 
-            LocalDate startDate = LocalDate.parse(from);
-            LocalDate endDate = LocalDate.parse(to);
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new MeetingNotFoundException(userId));
+        String[] participantEmails = meeting.getParticipants().stream().map(User::getEmail).toArray(String[]::new);
 
-            int pageNumber = offset / limit;
-            Pageable pageable = PageRequest.of(
-                    pageNumber,
-                    limit,
-                    Sort.by(Sort.Direction.ASC, "date").and(Sort.by(Sort.Direction.ASC, "startTime"))
-            );
 
-            Page<Meeting> result = meetingRepository.findVisibleInRangeForUser(startDate, endDate, user, pageable);
+        var response = zoomMeetingService.createMeeting(
+        meeting.getTitle(), startIso, endIso, participantEmails, user
+        );
 
-            return result;
 
-        } catch (MeetingNotFoundException e) {
-            throw e;
+        if (response != null) {
+        meeting.setZoomMeetingId(response.getZoomMeetingId());
+        meeting.setJoinUrl(response.getZoomJoinUrl());
+        }
+        return meetingRepository.save(meeting);
         } catch (Exception e) {
-            logger.error(" Error in getMeetingsInRange: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch meetings in range", e);
+        logger.error("Zoom create failed for meeting id={}: {}", meeting.getMeetingId(), e.getMessage(), e);
+        throw new ZoomSyncException("Failed to create Zoom meeting", e);
         }
     }
-
-
-    @Transactional(readOnly = true)
-    public Page<Meeting> getMeetingsInRange(Long userId, String from, String to, int size, Pageable pageable) {
-        return getMeetingsInRange(userId, from, to, 0, size);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<Meeting> getAllMeetings() {
-        try {
-            List<Meeting> meetings = meetingRepository.findAll();
-            return meetings;
-        } catch (Exception e) {
-            logger.error(" Error fetching all meetings: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch all meetings", e);
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public Page<Meeting> getTodayMeetingsForUser(Long userId, Pageable pageable) {
-        try {
-            LocalDate today = LocalDate.now();
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new MeetingNotFoundException(userId));
-
-            Page<Meeting> result = meetingRepository.findByDateAndCreatedByAndDeletedFalse(today, user, pageable);
-            return result;
-
-        } catch (MeetingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error(" Error in getTodayMeetingsForUser: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch today's meetings", e);
-        }
-    }
-
-
-    @Transactional(readOnly = true)
-    public Page<Meeting> getUpcomingMeetings(Long userId, int offset, int limit) {
-        try {
-            LocalDate today = LocalDate.now();
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new MeetingNotFoundException(userId));
-
-            int pageNumber = offset / limit;
-            Pageable pageable = PageRequest.of(
-                    pageNumber,
-                    limit,
-                    Sort.by(Sort.Direction.ASC, "date").and(Sort.by(Sort.Direction.ASC, "startTime"))
-            );
-
-            Page<Meeting> result = meetingRepository.findUpcomingVisibleForUser(today, user, pageable);
-
-            return result;
-
-        } catch (MeetingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error(" Error in getUpcomingMeetings: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch upcoming meetings", e);
-        }
-    }
-
-
 
     @Transactional(readOnly = true)
     public Page<Meeting> getUpcomingMeetings(Long userId, Pageable pageable) {
-        return getUpcomingMeetings(userId, 0, pageable.getPageSize());
-    }
+        LocalDate nowDate = LocalDate.now(clock);
+        LocalTime nowTime = LocalTime.now(clock);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new MeetingNotFoundException(userId));
+
+    return meetingRepository.findHistoryVisibleForUser(nowDate, nowTime, user, pageable);    
+}
 
 
-    @Transactional(readOnly = true)
-    public Page<Meeting> getHistoryMeetings(Long userId, int offset, int limit) {
-        try {
-            LocalDate nowDate = LocalDate.now();
-            LocalTime nowTime = LocalTime.now();
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new MeetingNotFoundException(userId));
-
-            int pageNumber = offset / limit;
-            Pageable pageable = PageRequest.of(
-                    pageNumber,
-                    limit,
-                    Sort.by(Sort.Direction.DESC, "date").and(Sort.by(Sort.Direction.DESC, "startTime"))
-            );
-
-            Page<Meeting> result = meetingRepository.findHistoryVisibleForUser(nowDate, nowTime, user, pageable);
-
-            return result;
-
-        } catch (Exception e) {
-            logger.error(" Error in getHistoryMeetings: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch history meetings", e);
-        }
-    }
-
-
-    @Transactional(readOnly = true)
-    public Page<Meeting> getHistoryMeetings(Long userId, Pageable pageable) {
-        return getHistoryMeetings(userId, 0, pageable.getPageSize());
-    }
 
     public Meeting getMeetingById(Long id) {
         return meetingRepository.findById(id)
             .orElseThrow(() -> new MeetingNotFoundException(id));
     }
 
+
+
     @Transactional
     public void deleteMeeting(Long id) {
-        logger.info("Soft-deleting meeting id={}", id);
-
         Meeting meeting = getMeetingById(id);
-
-        try {
+        try{
             if (meeting.getZoomMeetingId() != null) {
                 zoomMeetingService.cancelMeeting(meeting.getZoomMeetingId(), meeting.getCreatedBy());
             }
-        } catch (Exception e) {
-            logger.error(" Zoom cancel failed for meeting {}: {}", id, e.getMessage(), e);
+        } catch (Exception e){
             throw new ZoomSyncException("Failed to cancel Zoom meeting", e);
         }
-
         evaluationRepository.deleteByMeeting_MeetingId(id);
-        noteRepository.deleteByMeeting_MeetingId(id);
-
-        meeting.setMeetingStatus("DELETED");
-        meeting.setDeleted(true);
-        meeting.setDeletedAt(LocalDateTime.now());
-
-        meetingRepository.save(meeting);
-        logger.info("Meeting id={} marked as deleted", id);
+        meetingRepository.deleteById(id);
+        logger.info("Meeting id={} permanently deleted", id);
     }
 
+
+
+
     @Transactional
-    public Meeting updateMeeting(Long id, UpdateMeetingRequest req, Long currentUserId) {
-        logger.info(" Starting updateMeeting for id={}, currentUserId={}", id, currentUserId);
-
+    public Meeting updateMeeting(Long id, UpdateMeetingRequest req, AuthUserPrincipal currentUser) {
         Meeting existing = getMeetingById(id);
-
+        User updater = userRepository.getReferenceById(currentUser.getId());
+    
         if (req.getTitle() != null) existing.setTitle(req.getTitle());
         if (req.getDescription() != null) existing.setDescription(req.getDescription());
         if (req.getLocation() != null) existing.setLocation(req.getLocation());
-        if (req.getRecurrenceRule() != null) existing.setRecurrenceRule(req.getRecurrenceRule());
-        if (req.getReminders() != null) existing.setReminders(req.getReminders());
-
         if (req.getDate() != null) existing.setDate(LocalDate.parse(req.getDate()));
 
         if (Boolean.TRUE.equals(req.getIsAllDay())) {
@@ -281,18 +184,33 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         }
 
         if (req.getParticipants() != null) {
-            List<User> people = req.getParticipants().isEmpty()
-                    ? List.of()
-                    : userRepository.findByEmailIn(req.getParticipants());
-            existing.setParticipants(people);
+            List<String> emails = req.getParticipants();
+            List<User> found = emails.isEmpty() ? List.of() : userRepository.findByEmailIn(emails);
+            Set<String> foundEmails = found.stream().map(User::getEmail).collect(Collectors.toSet());
+            List<String> missing = emails.stream().filter(e -> !foundEmails.contains(e)).toList();
+            if (!missing.isEmpty()){
+                throw new IllegalArgumentException("Participants not found: " + missing);
+            }
+            existing.setParticipants(found);
         }
 
-        existing.setUpdatedAt(LocalDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now(clock));
+        existing.setUpdatedBy(updater); 
+
+        ZoneId zone = resolveZone(existing.getCreatedBy() != null ? existing.getCreatedBy() : updater);
 
         if (existing.getZoomMeetingId() != null) {
             try {
-                String startIso = toIsoOffset(existing.getDate(), existing.getStartTime());
-                String endIso   = toIsoOffset(existing.getDate(), existing.getEndTime());
+                String startIso;
+                String endIso;
+
+                if (Boolean.TRUE.equals(existing.getIsAllDay())){
+                    startIso = toIsoOffset(existing.getDate(), LocalTime.MIDNIGHT, zone);
+                    endIso = toIsoOffset(existing.getDate().plusDays(1), LocalTime.MIDNIGHT, zone);
+                } else {
+                    startIso = toIsoOffset(existing.getDate(), existing.getStartTime(), zone);
+                    endIso = toIsoOffset(existing.getDate(), existing.getEndTime(), zone);
+                }
 
                 String[] participantEmails = existing.getParticipants() == null ? new String[0]
                         : existing.getParticipants().stream().map(User::getEmail).toArray(String[]::new);
@@ -315,106 +233,6 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         return meetingRepository.save(existing);
     }
 
-    @Transactional
-    public void deleteMeetingSeries(String recurrenceId) {
-        if (recurrenceId == null) {
-            throw new IllegalArgumentException("RecurrenceId cannot be null for deleting a series");
-        }
-        logger.info("Soft-deleting all meetings with recurrenceId={}", recurrenceId);
-
-        List<Meeting> meetings = meetingRepository.findByRecurrenceId(recurrenceId);
-        for (Meeting m : meetings) {
-            try {
-                if (m.getZoomMeetingId() != null) {
-                    zoomMeetingService.cancelMeeting(m.getZoomMeetingId(), m.getCreatedBy());
-                }
-            } catch (Exception e) {
-                logger.error(" Zoom cancel failed for series meeting {}: {}", m.getMeetingId(), e.getMessage(), e);
-                throw new ZoomSyncException("Failed to cancel Zoom meeting in series", e);
-            }
-
-            evaluationRepository.deleteByMeeting_MeetingId(m.getMeetingId());
-            noteRepository.deleteByMeeting_MeetingId(m.getMeetingId());
-
-            m.setMeetingStatus("DELETED");
-            m.setDeleted(true);
-            m.setDeletedAt(LocalDateTime.now());
-        }
-
-        meetingRepository.saveAll(meetings);
-        logger.info("Meetings with recurrenceId={} marked as deleted", recurrenceId);
-    }
-
-    @Transactional
-    public void updateSeries(String recurrenceId, UpdateMeetingRequest req) {
-        if (recurrenceId == null) {
-            throw new IllegalArgumentException("RecurrenceId cannot be null for updating a series");
-        }
-
-        logger.info("🔄 Updating entire series for recurrenceId={}, payload={}", recurrenceId, req);
-
-        List<Meeting> meetings = meetingRepository.findByRecurrenceId(recurrenceId);
-
-        for (Meeting m : meetings) {
-            if (req.getTitle() != null) m.setTitle(req.getTitle());
-            if (req.getDescription() != null) m.setDescription(req.getDescription());
-            if (req.getLocation() != null) m.setLocation(req.getLocation());
-            if (req.getRecurrenceRule() != null) m.setRecurrenceRule(req.getRecurrenceRule());
-            if (req.getReminders() != null) m.setReminders(req.getReminders());
-
-            if (req.getDate() != null) m.setDate(LocalDate.parse(req.getDate()));
-
-            if (Boolean.TRUE.equals(req.getIsAllDay())) {
-                m.setIsAllDay(true);
-                m.setStartTime(LocalTime.of(0, 0));
-                m.setEndTime(LocalTime.of(23, 59));
-            } else if (req.getIsAllDay() != null && !req.getIsAllDay()) {
-                m.setIsAllDay(false);
-                if (req.getStartTime() != null) m.setStartTime(parseTime(req.getStartTime()));
-                if (req.getEndTime() != null) m.setEndTime(parseTime(req.getEndTime()));
-            } else {
-                if (req.getStartTime() != null) m.setStartTime(parseTime(req.getStartTime()));
-                if (req.getEndTime() != null) m.setEndTime(parseTime(req.getEndTime()));
-            }
-
-            if (req.getParticipants() != null) {
-                List<User> people = req.getParticipants().isEmpty()
-                        ? List.of()
-                        : userRepository.findByEmailIn(req.getParticipants());
-                m.setParticipants(people);
-            }
-
-            m.setUpdatedAt(LocalDateTime.now());
-        }
-
-        meetingRepository.saveAll(meetings);
-        logger.info(" Updated {} meetings in series {}", meetings.size(), recurrenceId);
-    }
-
-
-    public Meeting saveWithZoom(Meeting meeting, User creator) {
-        try {
-            String startIso = toIsoOffset(meeting.getDate(), meeting.getStartTime());
-            String endIso   = toIsoOffset(meeting.getDate(), meeting.getEndTime());
-
-            String[] participantEmails = meeting.getParticipants()
-                    .stream().map(User::getEmail).toArray(String[]::new);
-
-            var response = zoomMeetingService.createMeeting(
-                    meeting.getTitle(), startIso, endIso, participantEmails, creator
-            );
-
-            if (response != null) {
-                meeting.setZoomMeetingId(response.getZoomMeetingId());
-                meeting.setJoinUrl(response.getZoomJoinUrl());
-            }
-            return meetingRepository.save(meeting);
-
-        } catch (Exception e) {
-            logger.error(" Failed to create meeting with Zoom: {}", e.getMessage(), e);
-            throw new ZoomSyncException("Failed to create meeting with Zoom", e);
-        }
-    }
 
     private static LocalTime parseTime(String t) {
         if (t == null) return null;
@@ -422,156 +240,33 @@ public Meeting createMeeting(CreateMeetingRequest req, User creator) {
         return LocalTime.parse(t);
     }
 
-    private static String toIsoOffset(LocalDate d, LocalTime t) {
-        ZoneId zone = ZoneId.systemDefault();
+
+    
+    private static String toIsoOffset(LocalDate d, LocalTime t, ZoneId zone) {
+        if (d == null || t == null) throw new IllegalArgumentException("Date and time required");
         return d.atTime(t)
-                .atZone(zone)
-                .toOffsetDateTime()
-                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            .atZone(zone)
+            .toOffsetDateTime()
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    }
+
+
+
+
+
+    private ZoneId resolveZone(User user) {
+        return ZoneId.systemDefault();
     }
 
     @Transactional(readOnly = true)
-    public Page<Meeting> getExpandedMeetingsInRange(Long userId, String from, String to, int offset, int limit) {
-        try {
-            logger.info("🚀 getExpandedMeetingsInRange called: userId={}, from={}, to={}, offset={}, limit={}",
-                    userId, from, to, offset, limit);
+    public Page<Meeting> getHistoryMeetings(Long userId, Pageable pageable) {
+        LocalDate today = LocalDate.now(clock);
+        LocalTime nowTime = LocalTime.now(clock);
 
-            LocalDate startDate = LocalDate.parse(from);
-            LocalDate endDate = LocalDate.parse(to);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new MeetingNotFoundException(userId));
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new MeetingNotFoundException(userId));
-
-            LocalDate expandedStart = startDate.minusMonths(1);
-
-            List<Meeting> baseMeetings = meetingRepository.findVisibleInRangeForUserList(
-                    expandedStart, endDate, user
-            );
-
-            logger.info(" Found {} base meetings to process", baseMeetings.size());
-
-            List<Meeting> expandedOccurrences = new ArrayList<>();
-            for (Meeting baseMeeting : baseMeetings) {
-                if (baseMeeting.getRecurrenceRule() == null || baseMeeting.getRecurrenceRule().isBlank()) {
-                    if (!baseMeeting.getDate().isBefore(startDate) && !baseMeeting.getDate().isAfter(endDate)) {
-                        expandedOccurrences.add(baseMeeting);
-                    }
-                } else {
-                    expandedOccurrences.addAll(generateRecurrenceOccurrences(baseMeeting, startDate, endDate));
-                }
-            }
-
-            expandedOccurrences.sort((a, b) -> {
-                int dateComparison = a.getDate().compareTo(b.getDate());
-                return (dateComparison != 0) ? dateComparison : a.getStartTime().compareTo(b.getStartTime());
-            });
-
-            int total = expandedOccurrences.size();
-            int fromIndex = Math.min(offset, total);
-            int toIndex = Math.min(offset + limit, total);
-            List<Meeting> pageContent = expandedOccurrences.subList(fromIndex, toIndex);
-
-            Pageable pageable = PageRequest.of(offset / limit, limit);
-            Page<Meeting> result = new PageImpl<>(pageContent, pageable, total);
-
-            logger.info(" Returning {} expanded meetings (page {}, total: {})",
-                    result.getNumberOfElements(), offset / limit, total);
-
-            return result;
-
-        } catch (MeetingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error(" Error in getExpandedMeetingsInRange: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch expanded meetings in range", e);
-        }
+        return meetingRepository.findHistoryVisibleForUser(today, nowTime, user, pageable);
     }
 
-
-
-    private List<Meeting> generateRecurrenceOccurrences(Meeting baseMeeting, LocalDate rangeStart, LocalDate rangeEnd) {
-        List<Meeting> occurrences = new ArrayList<>();
-        
-        String recurrenceRule = baseMeeting.getRecurrenceRule().toUpperCase().trim();
-        LocalDate currentDate = baseMeeting.getDate();
-        LocalDate until = baseMeeting.getRecurrenceUntil(); 
-        System.out.println("Recurrence Rule: " + recurrenceRule);
-        System.out.println("Range Start: " + rangeStart);
-        System.out.println("Range End: " + rangeEnd);
-        ChronoUnit incrementUnit;
-        int incrementAmount = 1;
-        
-        switch (recurrenceRule) {
-            case "DAILY":
-                incrementUnit = ChronoUnit.DAYS;
-                break;
-            case "WEEKLY":
-                incrementUnit = ChronoUnit.WEEKS;
-                break;
-            case "MONTHLY":
-                incrementUnit = ChronoUnit.MONTHS;
-                break;
-            default:
-                logger.warn(" Unsupported recurrence rule: {}. Treating as non-recurring.", recurrenceRule);
-                return List.of(baseMeeting);
-        }
-        
-        if (currentDate.isBefore(rangeStart)){
-            long daysBetween = ChronoUnit.DAYS.between(currentDate, rangeStart);
-            currentDate = currentDate.plusDays(daysBetween);
-        }
-
-        int maxOccurrences = 100; 
-        int count = 0;
-        
-        while (count < maxOccurrences) {
-            if (until != null && currentDate.isAfter(until)) {
-                break;
-            }
-            
-            if (currentDate.isAfter(rangeEnd)) {
-                break;
-            }
-            
-            if (!currentDate.isBefore(rangeStart) && !currentDate.isAfter(rangeEnd)) {
-                Meeting occurrence = createOccurrenceFromBase(baseMeeting, currentDate);
-                occurrences.add(occurrence);
-            }
-            
-            currentDate = currentDate.plus(incrementAmount, incrementUnit);
-            count++;
-        }
-        
-        logger.debug("Generated {} occurrences for recurring meeting {} ({})", 
-                    occurrences.size(), baseMeeting.getMeetingId(), recurrenceRule);
-        
-        return occurrences;
-    }
-
-    private Meeting createOccurrenceFromBase(Meeting baseMeeting, LocalDate occurrenceDate) {
-        Meeting occurrence = new Meeting();
-        occurrence.setMeetingId(baseMeeting.getMeetingId()); 
-        occurrence.setTitle(baseMeeting.getTitle());
-        occurrence.setDescription(baseMeeting.getDescription());
-        occurrence.setLocation(baseMeeting.getLocation());
-        occurrence.setDate(occurrenceDate); 
-        occurrence.setStartTime(baseMeeting.getStartTime());
-        occurrence.setEndTime(baseMeeting.getEndTime());
-        occurrence.setIsAllDay(baseMeeting.getIsAllDay());
-        occurrence.setParticipants(baseMeeting.getParticipants());
-        occurrence.setCreatedBy(baseMeeting.getCreatedBy());
-        occurrence.setMeetingStatus(baseMeeting.getMeetingStatus());
-        occurrence.setCreatedAt(baseMeeting.getCreatedAt());
-        occurrence.setUpdatedAt(baseMeeting.getUpdatedAt());
-        occurrence.setRecurrenceId(baseMeeting.getRecurrenceId());
-        occurrence.setRecurrenceRule(baseMeeting.getRecurrenceRule());
-        occurrence.setRecurrenceUntil(baseMeeting.getRecurrenceUntil());
-        occurrence.setReminders(baseMeeting.getReminders());
-        occurrence.setZoomMeetingId(baseMeeting.getZoomMeetingId());
-        occurrence.setJoinUrl(baseMeeting.getJoinUrl());
-        occurrence.setDeleted(baseMeeting.isDeleted());
-        occurrence.setDeletedAt(baseMeeting.getDeletedAt());
-        
-        return occurrence;
-    }
 }
