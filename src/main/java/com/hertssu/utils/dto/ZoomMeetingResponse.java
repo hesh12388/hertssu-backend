@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MeetingResponse {
+public class ZoomMeetingResponse {
     
     // Zoom meeting ID 
     @JsonProperty("id")

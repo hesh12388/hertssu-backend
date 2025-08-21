@@ -23,7 +23,7 @@ import com.hertssu.utils.ZoomMeetingService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import com.hertssu.utils.dto.MeetingResponse;
+import com.hertssu.utils.dto.ZoomMeetingResponse;
 import com.hertssu.Committee.CommitteeRepository;
 import com.hertssu.Subcommittee.SubcommitteeRepository;
 @Service
@@ -66,7 +66,7 @@ public class InterviewService {
             .toString();
 
     
-        MeetingResponse meeting  = teams.createMeeting(subject, startTimeStr, endTimeStr, attendees, interviewerRef);
+        ZoomMeetingResponse meeting  = teams.createMeeting(subject, startTimeStr, endTimeStr, attendees);
         
         // Persist interview with Teams fields
         Interview interview = Interview.builder()
@@ -126,7 +126,7 @@ public class InterviewService {
             System.out.println("Failed to save interview to database: " + ex.getMessage());
             // cancel meeting since DB failed
             try { 
-                teams.cancelMeeting(meeting.getId(), interviewerRef); 
+                teams.cancelMeeting(meeting.getId()); 
             } 
             catch (Exception ignore) {
 
@@ -266,12 +266,11 @@ public class InterviewService {
 
 
     public void deleteInterview(UUID id, AuthUserPrincipal me) {
-        User user = userRepository.getReferenceById(me.getId());
         Interview interview = interviewRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Interview not found"));
 
        
-        teams.cancelMeeting(interview.getMeetingId(), user);
+        teams.cancelMeeting(interview.getMeetingId());
         interviewRepository.deleteById(id);
        
     }
@@ -298,13 +297,12 @@ public class InterviewService {
         String endIso   = req.getEndTime().atZone(egypt).toOffsetDateTime().toString();
 
         String[] attendees = { req.getGafEmail(), me.getEmail()};
-        User user = userRepository.getReferenceById(me.getId());
         Committee committee = committeeRepository.getReferenceById(req.getCommitteeId());
         Subcommittee subCommittee = null;
         if (req.getSubCommitteeId() != null) {
             subCommittee = subcommitteeRepository.getReferenceById(req.getSubCommitteeId());
         }
-        teams.updateMeeting(meetingId, subject, startIso, endIso, attendees, user);
+        teams.updateMeeting(meetingId, subject, startIso, endIso, attendees);
 
         try{
             interview.setName(req.getName());
@@ -349,7 +347,7 @@ public class InterviewService {
         }
         catch(Exception ex){    
              try { 
-                teams.updateMeeting(meetingId, origSubject, originalStart, originalEnd, originalAttendees, user);
+                teams.updateMeeting(meetingId, origSubject, originalStart, originalEnd, originalAttendees);
             } 
             catch (Exception ignore) {
 

@@ -1,9 +1,8 @@
 package com.hertssu.meetings.dto;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -11,15 +10,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UpdateMeetingRequest {
+public class MeetingResponse {
     
-    @Size(max = 255, message = "Title must not exceed 255 characters")
+    private Long meetingId;
     private String title;
-    
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;
-    
-    @Size(max = 255, message = "Location must not exceed 255 characters")
     private String location;
     
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -32,6 +27,17 @@ public class UpdateMeetingRequest {
     private LocalTime endTime;
     
     private Boolean isAllDay;
+    private List<UserResponse> participants;
+    private String joinUrl;
+    private String zoomMeetingId;
+    private UserResponse createdBy;    
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt;
     
-    private List<Long> participantIds;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime updatedAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime cancelledAt;
 }
+

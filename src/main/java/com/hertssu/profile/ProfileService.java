@@ -4,7 +4,7 @@ import com.hertssu.user.UserRepository;
 import com.hertssu.model.*;
 import com.hertssu.Tasks.TaskRepository;
 import com.hertssu.Warnings.WarningRepository;
-import com.hertssu.meetings.repository.MeetingEvaluationRepository;
+import com.hertssu.meetings.EvaluationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +19,7 @@ public class ProfileService {
 
     private final TaskRepository taskRepository;
     private final WarningRepository warningRepository;
-    private final MeetingEvaluationRepository meetingEvaluationRepository;
+    private final EvaluationRepository meetingEvaluationRepository;
     private final UserRepository userRepository;
 
     public UserProfileResponse getUserProfile(Long userId) {
@@ -28,9 +28,12 @@ public class ProfileService {
         
         // Get last 10 warnings for the user
         List<Warning> warnings = warningRepository.findTop10ByAssigneeIdOrderByIssuedDateDesc(userId);
+
+        // Get the user
+        User user = userRepository.getReferenceById(userId);
         
         // Get the last 20 performance evaluations for the user
-        List<MeetingEvaluation> evaluations = meetingEvaluationRepository.findTop20ByParticipantIdOrderByMeetingDateDesc(userId);
+        List<MeetingEvaluation> evaluations = meetingEvaluationRepository.findTop20ByParticipantOrderByMeetingDateDesc(user);
         
         List<TaskSummary> taskSummaries = tasks.stream()
             .map(this::convertToTaskSummary)
@@ -85,50 +88,55 @@ public class ProfileService {
                 .meetingTitle(evaluation.getMeeting().getTitle())
                 .meetingDate(evaluation.getMeeting().getDate())
                 .performance(evaluation.getPerformance())
-                .communication(evaluation.getCommunication())
-                .teamwork(evaluation.getTeamwork())
                 .evaluatorName(getFullName(evaluation.getEvaluator()))
                 .createdAt(evaluation.getCreatedAt())
-                .notes(evaluation.getNotes())
-                .isLate(evaluation.getIsLate())
-                .attendance(evaluation.getAttendance())
+                .note(evaluation.getNote())
+                .isLate(evaluation.getLate())
+                .attendance(evaluation.getAttended())
+                .hasException(evaluation.getHasException())
                 .build();
     }
 
     private PerformanceStats calculatePerformanceStats(List<MeetingEvaluation> evaluations) {
         if (evaluations.isEmpty()) {
             return PerformanceStats.builder()
-                    .avgTeamwork(0.0)
                     .avgPerformance(0.0)
-                    .avgCommunication(0.0)
-                    .overallAverage(0.0)
                     .totalEvaluations(0)
+                    .totalAbsences(0)
+                    .totalLateArrivals(0)
+                    .totalExceptions(0)
+                    .attendanceRate(0.0)
                     .build();
         }
 
-        double avgTeamwork = evaluations.stream()
-                .mapToInt(MeetingEvaluation::getTeamwork)
-                .average()
-                .orElse(0.0);
-
         double avgPerformance = evaluations.stream()
+                .filter(e -> e.getPerformance() != null)
                 .mapToInt(MeetingEvaluation::getPerformance)
                 .average()
                 .orElse(0.0);
 
-        double avgCommunication = evaluations.stream()
-                .mapToInt(MeetingEvaluation::getCommunication)
-                .average()
-                .orElse(0.0);
+        int totalAbsences = (int) evaluations.stream()
+                .filter(e -> Boolean.FALSE.equals(e.getAttended()))
+                .count();
 
-        double overallAverage = (avgTeamwork + avgPerformance + avgCommunication) / 3.0;
+        int totalLateArrivals = (int) evaluations.stream()
+                .filter(e -> Boolean.TRUE.equals(e.getLate()))
+                .count();
+
+        int totalExceptions = (int) evaluations.stream()
+                .filter(e -> Boolean.TRUE.equals(e.getHasException()))
+                .count();
+
+        double attendanceRate = evaluations.isEmpty() ? 0.0 : 
+                (double) (evaluations.size() - totalAbsences) / evaluations.size() * 100.0;
 
         return PerformanceStats.builder()
-                .avgTeamwork(Math.round(avgTeamwork * 100.0) / 100.0) 
                 .avgPerformance(Math.round(avgPerformance * 100.0) / 100.0)
-                .avgCommunication(Math.round(avgCommunication * 100.0) / 100.0)
-                .overallAverage(Math.round(overallAverage * 100.0) / 100.0)
                 .totalEvaluations(evaluations.size())
+                .totalAbsences(totalAbsences)
+                .totalLateArrivals(totalLateArrivals)
+                .totalExceptions(totalExceptions)
+                .attendanceRate(Math.round(attendanceRate * 100.0) / 100.0)
                 .build();
     }
 

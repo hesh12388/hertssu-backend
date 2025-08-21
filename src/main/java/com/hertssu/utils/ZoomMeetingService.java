@@ -1,7 +1,6 @@
 package com.hertssu.utils;
 
-import com.hertssu.model.User;
-import com.hertssu.utils.dto.MeetingResponse;
+import com.hertssu.utils.dto.ZoomMeetingResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,19 +29,18 @@ public class ZoomMeetingService {
             .build();
     
     // CREATE meeting
-    public MeetingResponse createMeeting(String subject, String startIso, String endIso, 
-                                       String[] attendeeEmails, User me) {
+    public ZoomMeetingResponse createMeeting(String subject, String startIso, String endIso, 
+                                       String[] attendeeEmails) {
         String bearer = "Bearer " + tokenProvider.getAccessToken();
-        System.out.println("Creating Zoom meeting for user: " + bearer);
         var body = buildMeetingPayload(subject, startIso, endIso, attendeeEmails);
         
         try {
-            MeetingResponse response = web.post()
+            ZoomMeetingResponse response = web.post()
                     .uri("/users/{userId}/meetings", zoomUserId)
                     .header("Authorization", bearer)
                     .bodyValue(body)
                     .retrieve()
-                    .bodyToMono(MeetingResponse.class)
+                    .bodyToMono(ZoomMeetingResponse.class)
                     .block();
             
             return response;
@@ -54,7 +52,7 @@ public class ZoomMeetingService {
     
     // UPDATE meeting
     public void updateMeeting(String meetingId, String subject, String startIso, String endIso, 
-                            String[] attendeeEmails, User me) {
+                            String[] attendeeEmails) {
         String bearer = "Bearer " + tokenProvider.getAccessToken();
         var body = buildMeetingPayload(subject, startIso, endIso, attendeeEmails);
         
@@ -76,7 +74,7 @@ public class ZoomMeetingService {
     }
     
     // CANCEL (DELETE) meeting
-    public void cancelMeeting(String meetingId, User me) {
+    public void cancelMeeting(String meetingId) {
         String bearer = "Bearer " + tokenProvider.getAccessToken();
         
         try {

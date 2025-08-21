@@ -38,7 +38,6 @@ public class Meeting {
     private String title;
     private String description;
     private String location;
-
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
@@ -57,16 +56,9 @@ public class Meeting {
     private String zoomMeetingId;
     @ManyToOne
     private User createdBy;
-    @ManyToOne
-    private User updatedBy;
-
-    private String meetingStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime cancelledAt;
-
-    @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
-    private String note;
 
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MeetingEvaluation> evaluations;
