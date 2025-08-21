@@ -49,7 +49,7 @@ public class ProposalService {
 
     public List<ProposalResponse> getMyProposals(Integer committeeId, Integer subcommitteeId, String userRole) {
         System.out.println("Fetching proposals for committeeId: " + committeeId + ", subcommitteeId: " + subcommitteeId + ", userRole: " + userRole);
-        if (userRole.equals("Chairperson") || userRole.equals("Associate Chairperson")) {
+        if (userRole.equals("CHAIRPERSON") || userRole.equals("ASSOCIATE_CHAIRPERSON")) {
             try{
                 Committee committee = committeeRepository.getReferenceById(committeeId);
                 List<Proposal> proposals = proposalRepository.findByAssigner(committee);
@@ -59,7 +59,7 @@ public class ProposalService {
                 return new ArrayList<>();
             }
         } 
-        else if (userRole.equals("Leader") || userRole.equals("Associate Leader")) {
+        else if (userRole.equals("LEADER") || userRole.equals("ASSOCIATE_LEADER")) {
             Subcommittee subcommittee = subcommitteeRepository.getReferenceById(subcommitteeId);
             List<Proposal> proposals = proposalRepository.findByAssignee(subcommittee);
             return proposals.stream().map(this::convertToProposalResponse).collect(Collectors.toList());
