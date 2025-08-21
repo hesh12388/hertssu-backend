@@ -153,7 +153,7 @@ public class MeetingService {
     public Page<MeetingResponse> getUpcomingMeetings(Pageable pageable, AuthUserPrincipal me) {
         User user = userRepository.getReferenceById(me.getId());
         
-        LocalDate currentDate = LocalDate.now();
+        LocalDateTime currentDate = LocalDateTime.now();
         Page<Meeting> meetings = meetingRepository.findUpcomingMeetingsForUser(user, currentDate, pageable);
         
         return meetings.map(this::convertToResponse);
@@ -163,7 +163,7 @@ public class MeetingService {
     public Page<MeetingResponse> getHistoryMeetings(Pageable pageable, AuthUserPrincipal me) {
         User user = userRepository.getReferenceById(me.getId());
         
-        LocalDate currentDate = LocalDate.now();
+        LocalDateTime currentDate = LocalDateTime.now();
         Page<Meeting> meetings = meetingRepository.findHistoryMeetingsForUser(user, currentDate, pageable);
         
         return meetings.map(this::convertToResponse);
