@@ -83,7 +83,6 @@ public class MeetingService {
             .zoomMeetingId(zoomMeetingId)
             .createdBy(creator)
             .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
             .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
@@ -130,7 +129,6 @@ public class MeetingService {
             throw new RuntimeException("Failed to update Zoom meeting", e);
         }
         
-        meeting.setUpdatedAt(LocalDateTime.now());
         Meeting savedMeeting = meetingRepository.save(meeting);
         return convertToResponse(savedMeeting);
     }
@@ -195,8 +193,6 @@ public class MeetingService {
             .zoomMeetingId(meeting.getZoomMeetingId())
             .createdBy(convertUserToResponse(meeting.getCreatedBy()))
             .createdAt(meeting.getCreatedAt())
-            .updatedAt(meeting.getUpdatedAt())
-            .cancelledAt(meeting.getCancelledAt())
             .build();
     }
 

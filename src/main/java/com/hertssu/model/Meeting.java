@@ -21,12 +21,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(
-    name = "meetings",
-    indexes = {
-        @Index(name = "idx_meeting_recurrence", columnList = "recurrenceId"),
-        @Index(name = "idx_meeting_date", columnList = "date"),
-        @Index(name = "idx_meeting_status", columnList = "meetingStatus")
-    }
+    name = "meetings"
 )
 public class Meeting {
 
@@ -57,9 +52,6 @@ public class Meeting {
     @ManyToOne
     private User createdBy;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime cancelledAt;
-
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MeetingEvaluation> evaluations;
 }
