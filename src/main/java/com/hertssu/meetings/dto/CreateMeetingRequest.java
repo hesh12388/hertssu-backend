@@ -12,8 +12,5 @@ public class CreateMeetingRequest {
     private String startTime;     
     private String endTime;      
     private Boolean isAllDay;
-    private String recurrenceRule;
-    private List<Integer> reminders;
     private List<String> participants; 
-    private String recurrenceUntil; 
 }

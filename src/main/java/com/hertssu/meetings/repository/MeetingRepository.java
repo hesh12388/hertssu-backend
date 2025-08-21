@@ -137,22 +137,28 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
   );
 
   @Query("""
-    select distinct m
+    select m
     from Meeting m
-    left join m.participants p
     where m.deleted = false
       and (
         m.date < :today
         or (m.date = :today and m.endTime < :nowTime)
       )
-      and (m.createdBy = :user or p = :user)
-    order by m.date desc, m.startTime desc
+      and (
+        m.createdBy = :user
+        or exists (
+          select 1
+          from m.participants p
+          where p = :user
+        )
+      )
   """)
   Page<Meeting> findHistoryVisibleForUser(
       @Param("today") LocalDate today,
-      @Param("nowTime") java.time.LocalTime nowTime,
+      @Param("nowTime") LocalTime nowTime,
       @Param("user") User user,
       Pageable pageable
   );
+
     
 }
