@@ -20,6 +20,7 @@ import com.hertssu.utils.dto.ZoomMeetingResponse;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -153,9 +154,10 @@ public class MeetingService {
     public Page<MeetingResponse> getUpcomingMeetings(Pageable pageable, AuthUserPrincipal me) {
         User user = userRepository.getReferenceById(me.getId());
         
-        LocalDateTime currentDate = LocalDateTime.now();
-        Page<Meeting> meetings = meetingRepository.findUpcomingMeetingsForUser(user, currentDate, pageable);
-        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate currentDate = now.toLocalDate();
+        LocalTime currentTime = now.toLocalTime();
+        Page<Meeting> meetings = meetingRepository.findUpcomingMeetingsForUser(user, currentDate, currentTime, pageable);
         return meetings.map(this::convertToResponse);
     }
 
@@ -163,9 +165,10 @@ public class MeetingService {
     public Page<MeetingResponse> getHistoryMeetings(Pageable pageable, AuthUserPrincipal me) {
         User user = userRepository.getReferenceById(me.getId());
         
-        LocalDateTime currentDate = LocalDateTime.now();
-        Page<Meeting> meetings = meetingRepository.findHistoryMeetingsForUser(user, currentDate, pageable);
-        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate currentDate = now.toLocalDate();
+        LocalTime currentTime = now.toLocalTime();
+        Page<Meeting> meetings = meetingRepository.findHistoryMeetingsForUser(user, currentDate, currentTime, pageable);
         return meetings.map(this::convertToResponse);
     }
 

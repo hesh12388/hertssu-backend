@@ -48,7 +48,6 @@ public class ProposalService {
     }
 
     public List<ProposalResponse> getMyProposals(Integer committeeId, Integer subcommitteeId, String userRole) {
-        System.out.println("Fetching proposals for committeeId: " + committeeId + ", subcommitteeId: " + subcommitteeId + ", userRole: " + userRole);
         if (userRole.equals("CHAIRPERSON") || userRole.equals("ASSOCIATE_CHAIRPERSON")) {
             try{
                 Committee committee = committeeRepository.getReferenceById(committeeId);
