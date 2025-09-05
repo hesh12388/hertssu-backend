@@ -35,7 +35,7 @@ public class UserService {
     
     public UserResponse createUser(CreateUserRequest createUserRequestDTO) {
         // Check if user with email already exists
-        if (userRepository.findByEmail(createUserRequestDTO.getEmail()).isPresent()) {
+        if (userRepository.findByEmailIgnoreCase(createUserRequestDTO.getEmail()).isPresent()) {
             throw new RuntimeException("User with email " + createUserRequestDTO.getEmail() + " already exists");
         }
         

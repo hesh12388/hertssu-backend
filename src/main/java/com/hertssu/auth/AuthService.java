@@ -32,7 +32,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public String [] authenticate(String email, String password) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("Email not found"));
 
         if (!(passwordEncoder.matches(password, user.getPassword()))) {
@@ -48,7 +48,7 @@ public class AuthService {
     public String [] refreshAccessToken(String refreshToken) {
         Claims claims = jwtUtil.validateRefreshToken(refreshToken);
         String email = claims.getSubject();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String newAccessToken = jwtUtil.generateToken(user);
@@ -57,11 +57,20 @@ public class AuthService {
         return new String[]{newAccessToken, newRefreshToken};
     }
 
-    public String[] authenticate_oauth(String id_token) {
+    public String[] authenticate_oauth(String id_token, String provider) {
         try {
             // Verify and decode the Microsoft ID token
-            DecodedJWT jwt = verifyMicrosoftToken(id_token);
-            
+            DecodedJWT jwt;
+        
+            if ("microsoft".equals(provider)) {
+                jwt = verifyMicrosoftToken(id_token);
+            } else if ("apple".equals(provider)) {
+                System.out.println("Verifying Apple token");
+                jwt = verifyAppleToken(id_token);
+            } else {
+                throw new RuntimeException("Unsupported provider: " + provider);
+            }
+        
             // Extract user information from verified token
             String email = jwt.getClaim("email").asString();
                 
@@ -70,7 +79,7 @@ public class AuthService {
             }
             
             // Find existing user and  throw error if not found
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("User not found. Please register first."));
                 
             // Generate your JWT tokens
@@ -137,5 +146,64 @@ public class AuthService {
             }
         }
         throw new RuntimeException("Public key not found for key ID: " + keyId);
+    }
+
+    private DecodedJWT verifyAppleToken(String token) throws Exception {
+        try {
+            // Decode token to get key ID
+            DecodedJWT unverifiedJwt = JWT.decode(token);
+            String keyId = unverifiedJwt.getKeyId();
+            if (keyId == null) {
+                throw new RuntimeException("No key ID found in Apple token header");
+            }
+            
+            System.out.println("Verifying token for:" + keyId);
+            // Get Apple's public key for this key ID
+            RSAPublicKey publicKey = getApplePublicKey(keyId);
+
+            System.out.println("retrieved apple public key");
+            Algorithm algorithm = Algorithm.RSA256(publicKey, null);
+            
+            // Build verifier with Apple-specific validations
+            JWTVerifier verifier = JWT.require(algorithm)
+                .withIssuer("https://appleid.apple.com")
+                .acceptLeeway(60)
+                .build();
+            
+            
+            // Verify and return the token
+            return verifier.verify(token);
+        } catch (Exception e) {
+            System.out.println("Error verifying key");
+            throw new RuntimeException("Apple token verification failed: " + e.getMessage());
+        }
+    }
+
+    private RSAPublicKey getApplePublicKey(String keyId) throws Exception {
+        // Fetch Apple's public keys
+        String keysUrl = "https://appleid.apple.com/auth/keys";
+        JsonNode response = restTemplate.getForObject(keysUrl, JsonNode.class);
+        JsonNode keys = response.get("keys");
+        
+        // Find the key with matching kid
+        for (JsonNode key : keys) {
+            if (keyId.equals(key.get("kid").asText())) {
+                // Get n and e values
+                String n = key.get("n").asText();
+                String e = key.get("e").asText();
+                
+                // Decode and create public key
+                byte[] nBytes = Base64.getUrlDecoder().decode(n);
+                byte[] eBytes = Base64.getUrlDecoder().decode(e);
+                BigInteger modulus = new BigInteger(1, nBytes);
+                BigInteger exponent = new BigInteger(1, eBytes);
+                RSAPublicKeySpec spec = new RSAPublicKeySpec(modulus, exponent);
+                KeyFactory factory = KeyFactory.getInstance("RSA");
+                return (RSAPublicKey) factory.generatePublic(spec);
+            }
+        }
+
+        System.out.println("failed to find apple key");
+        throw new RuntimeException("Apple public key not found for key ID: " + keyId);
     }
 }

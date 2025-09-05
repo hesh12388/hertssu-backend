@@ -8,4 +8,5 @@ import lombok.NoArgsConstructor;
 public class OAuthLoginRequest {
 
     private String id_token;
+    private String provider;
 }
